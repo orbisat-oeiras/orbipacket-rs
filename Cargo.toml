@@ -1,0 +1,9 @@
+[package]
+name = "orbipacket"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR APACHE-2.0"
+authors = ["Levi Gomes", "The OrbiSat Oeiras Team"]
+description = "A packet based protocol for communication with CanSat devices."
+
+[dependencies]
