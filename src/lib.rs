@@ -1,5 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
+static VERSION: u8 = 0x01;
+
 /// Data contained inside a packet
 ///
 /// TODO: Make the payload generic
@@ -27,15 +29,9 @@ pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
     /// Create a new telemetry packet
-    pub fn new(
-        version: u8,
-        length: u8,
-        device_id: DeviceId,
-        timestamp: Timestamp,
-        payload: Payload,
-    ) -> Self {
+    pub fn new(length: u8, device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TmPacket(InternalPacket {
-            version,
+            version: VERSION,
             length,
             device_id,
             timestamp,
@@ -49,15 +45,9 @@ pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
     /// Create a new telecommand packet
-    pub fn new(
-        version: u8,
-        length: u8,
-        device_id: DeviceId,
-        timestamp: Timestamp,
-        payload: Payload,
-    ) -> Self {
+    pub fn new(length: u8, device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TcPacket(InternalPacket {
-            version,
+            version: VERSION,
             length,
             device_id,
             timestamp,
