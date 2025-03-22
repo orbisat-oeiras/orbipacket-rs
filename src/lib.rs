@@ -5,19 +5,23 @@ static VERSION: u8 = 0x01;
 /// Data contained inside a packet
 ///
 /// TODO: Make the payload generic
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Payload(u128);
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
 /// TODO: Autogenerate the enum variants from the protocol mapping
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum DeviceId {
     MissingDevice,
 }
 
 /// Time in nanoseconds since the Unix epoch
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Timestamp(u64);
 
 /// A packet containing metadata and a payload
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct InternalPacket {
     version: u8,
     length: u8,
@@ -60,6 +64,7 @@ impl InternalPacket {
 }
 
 /// A telemetry packet
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
@@ -90,6 +95,7 @@ impl TmPacket {
 }
 
 /// A telecommand packet
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
