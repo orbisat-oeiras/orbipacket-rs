@@ -130,3 +130,28 @@ pub enum Packet {
     TmPacket(TmPacket),
     TcPacket(TcPacket),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tm_packet_getters() {
+        let tm_packet = TmPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        assert_eq!(tm_packet.version(), VERSION);
+        assert_eq!(tm_packet.length(), 0);
+        assert_eq!(tm_packet.device_id(), &DeviceId::MissingDevice);
+        assert_eq!(tm_packet.timestamp().0, 0);
+        assert_eq!(tm_packet.payload().0, 0);
+    }
+
+    #[test]
+    fn test_tc_packet_getters() {
+        let tc_packet = TcPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        assert_eq!(tc_packet.version(), VERSION);
+        assert_eq!(tc_packet.length(), 0);
+        assert_eq!(tc_packet.device_id(), &DeviceId::MissingDevice);
+        assert_eq!(tc_packet.timestamp().0, 0);
+        assert_eq!(tc_packet.payload().0, 0);
+    }
+}
