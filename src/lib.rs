@@ -10,7 +10,9 @@ pub struct Payload(u128);
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
 /// TODO: Autogenerate the enum variants from the protocol mapping
-pub enum DeviceId {}
+pub enum DeviceId {
+    MissingDevice,
+}
 
 /// Time in nanoseconds since the Unix epoch
 pub struct Timestamp(u64);
