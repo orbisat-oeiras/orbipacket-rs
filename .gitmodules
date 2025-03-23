@@ -1,0 +1,3 @@
+[submodule "orbipacket"]
+	path = orbipacket
+	url = https://github.com/orbisat-oeiras/orbipacket
