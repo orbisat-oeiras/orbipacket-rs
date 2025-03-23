@@ -20,8 +20,8 @@ impl Payload {
     }
 
     /// Get the length of the payload in bytes
-    pub fn length(&self) -> u8 {
-        core::mem::size_of::<u128>().try_into().unwrap()
+    pub fn length() -> u8 {
+        16
     }
 }
 
@@ -41,7 +41,6 @@ pub struct Timestamp(u64);
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct InternalPacket {
     version: u8,
-    length: u8,
     device_id: DeviceId,
     timestamp: Timestamp,
     payload: Payload,
@@ -52,7 +51,6 @@ impl InternalPacket {
     fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         InternalPacket {
             version: VERSION,
-            length: payload.length(),
             device_id,
             timestamp,
             payload,
@@ -63,8 +61,8 @@ impl InternalPacket {
         self.version
     }
 
-    fn length(&self) -> u8 {
-        self.length
+    fn length() -> u8 {
+        Payload::length()
     }
 
     fn device_id(&self) -> &DeviceId {
@@ -94,8 +92,8 @@ impl TmPacket {
         self.0.device_id()
     }
 
-    pub fn length(&self) -> u8 {
-        self.0.length()
+    pub fn length() -> u8 {
+        InternalPacket::length()
     }
 
     pub fn payload(&self) -> &Payload {
@@ -125,8 +123,8 @@ impl TcPacket {
         self.0.device_id()
     }
 
-    pub fn length(&self) -> u8 {
-        self.0.length()
+    pub fn length() -> u8 {
+        InternalPacket::length()
     }
 
     pub fn payload(&self) -> &Payload {
@@ -171,9 +169,8 @@ mod tests {
 
     #[test]
     fn payload_length_returns_size_of_u128() {
-        let payload = Payload::new(0);
         assert_eq!(
-            payload.length(),
+            Payload::length(),
             core::mem::size_of::<u128>().try_into().unwrap()
         );
     }
@@ -183,22 +180,32 @@ mod tests {
         let payload = Payload::new(0);
         let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tm_packet.version(), VERSION);
-        assert_eq!(tm_packet.length(), payload.length());
         assert_eq!(tm_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tm_packet.timestamp().0, 0);
         assert_eq!(tm_packet.payload().0, 0);
     }
 
     #[test]
+    fn tm_packet_length_returns_size_of_payload() {
+        assert_eq!(TmPacket::length(), Payload::length());
+    }
+
+
+    #[test]
     fn tc_packet_getters_return_values_from_constructor() {
         let payload = Payload::new(0);
         let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tc_packet.version(), VERSION);
-        assert_eq!(tc_packet.length(), payload.length());
         assert_eq!(tc_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tc_packet.timestamp().0, 0);
         assert_eq!(tc_packet.payload().0, 0);
     }
+
+    #[test]
+    fn tc_packet_length_returns_size_of_payload() {
+        assert_eq!(TcPacket::length(), Payload::length());
+    }
+
 
     #[test]
     fn packet_is_tm_packet_returns_true_for_tm_packet() {
