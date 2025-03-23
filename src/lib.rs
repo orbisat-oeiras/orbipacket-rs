@@ -8,6 +8,23 @@ static VERSION: u8 = 0x01;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Payload(u128);
 
+impl Payload {
+    /// Create a new payload
+    pub fn new(data: u128) -> Self {
+        Payload(data)
+    }
+
+    /// Get the data contained in the payload
+    pub fn get(&self) -> u128 {
+        self.0
+    }
+
+    /// Get the length of the payload in bytes
+    pub fn length(&self) -> u8 {
+        core::mem::size_of::<u128>().try_into().unwrap()
+    }
+}
+
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
 /// TODO: Autogenerate the enum variants from the protocol mapping
@@ -145,6 +162,21 @@ impl Packet {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn payload_get_returns_value_from_constructor() {
+        let payload = Payload::new(0);
+        assert_eq!(payload.get(), 0);
+    }
+
+    #[test]
+    fn payload_length_returns_size_of_u128() {
+        let payload = Payload::new(0);
+        assert_eq!(
+            payload.length(),
+            core::mem::size_of::<u128>().try_into().unwrap()
+        );
+    }
 
     #[test]
     fn tm_packet_getters_return_values_from_constructor() {
