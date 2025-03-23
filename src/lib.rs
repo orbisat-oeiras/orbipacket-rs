@@ -49,10 +49,10 @@ struct InternalPacket {
 
 impl InternalPacket {
     /// Create a new packet
-    fn new(length: u8, device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
+    fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         InternalPacket {
             version: VERSION,
-            length,
+            length: payload.length(),
             device_id,
             timestamp,
             payload,
@@ -86,8 +86,8 @@ pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
     /// Create a new telemetry packet
-    pub fn new(length: u8, device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
-        TmPacket(InternalPacket::new(length, device_id, timestamp, payload))
+    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
+        TmPacket(InternalPacket::new(device_id, timestamp, payload))
     }
 
     pub fn device_id(&self) -> &DeviceId {
@@ -117,8 +117,8 @@ pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
     /// Create a new telecommand packet
-    pub fn new(length: u8, device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
-        TcPacket(InternalPacket::new(length, device_id, timestamp, payload))
+    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
+        TcPacket(InternalPacket::new(device_id, timestamp, payload))
     }
 
     pub fn device_id(&self) -> &DeviceId {
@@ -180,9 +180,10 @@ mod tests {
 
     #[test]
     fn tm_packet_getters_return_values_from_constructor() {
-        let tm_packet = TmPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let payload = Payload::new(0);
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tm_packet.version(), VERSION);
-        assert_eq!(tm_packet.length(), 0);
+        assert_eq!(tm_packet.length(), payload.length());
         assert_eq!(tm_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tm_packet.timestamp().0, 0);
         assert_eq!(tm_packet.payload().0, 0);
@@ -190,9 +191,10 @@ mod tests {
 
     #[test]
     fn tc_packet_getters_return_values_from_constructor() {
-        let tc_packet = TcPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let payload = Payload::new(0);
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tc_packet.version(), VERSION);
-        assert_eq!(tc_packet.length(), 0);
+        assert_eq!(tc_packet.length(), payload.length());
         assert_eq!(tc_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tc_packet.timestamp().0, 0);
         assert_eq!(tc_packet.payload().0, 0);
@@ -200,28 +202,28 @@ mod tests {
 
     #[test]
     fn packet_is_tm_packet_returns_true_for_tm_packet() {
-        let tm_packet = TmPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
         let packet = Packet::TmPacket(tm_packet);
         assert!(packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tm_packet_returns_false_for_tc_packet() {
-        let tc_packet = TcPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
         let packet = Packet::TcPacket(tc_packet);
         assert!(!packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_true_for_tc_packet() {
-        let tc_packet = TcPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
         let packet = Packet::TcPacket(tc_packet);
         assert!(packet.is_tc_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_false_for_tm_packet() {
-        let tm_packet = TmPacket::new(0, DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
         let packet = Packet::TmPacket(tm_packet);
         assert!(!packet.is_tc_packet());
     }
