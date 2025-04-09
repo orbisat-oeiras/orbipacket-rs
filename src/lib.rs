@@ -29,6 +29,7 @@ impl Payload {
 ///
 /// TODO: Autogenerate the enum variants from the protocol mapping
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[repr(u8)]
 pub enum DeviceId {
     MissingDevice,
 }
@@ -180,6 +181,7 @@ impl Packet {
     }
 }
 
+pub mod encode;
 
 #[cfg(test)]
 mod tests {
