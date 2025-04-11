@@ -25,22 +25,52 @@ impl core::fmt::Display for EncodeError {
 impl core::error::Error for EncodeError {}
 
 impl InternalPacket {
-    /// Encode the internal packet into the given buffer
-    fn encode(&self, mut buffer: &mut [u8], is_tm_packet: bool) -> Result<(), EncodeError> {
-        if buffer.remaining_mut() < InternalPacket::size() as usize {
-            return Err(EncodeError::BufferTooSmall {
-                required: InternalPacket::size() as usize,
-                available: buffer.remaining_mut(),
-            });
-        }
+    const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
+    /// Write the header data into the provided buffer
+    ///
+    /// The number of written bytes is returned.
+    fn write_header_to_buffer(
+        &self,
+        mut buffer: &mut [u8],
+        is_tm_packet: bool,
+    ) -> Result<usize, EncodeError> {
+        let initial = buffer.remaining_mut();
         buffer.put_u8(self.version());
         buffer.put_u8(Self::length());
         let control = *self.device_id() as u8;
         let control = control | if is_tm_packet { 0 } else { 1 << 7 };
         buffer.put_u8(control);
         buffer.put_u64_le(self.timestamp().0);
+
+        Ok(initial - buffer.remaining_mut())
+    }
+
+    fn write_payload_to_buffer(&self, mut buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let initial = buffer.remaining_mut();
         buffer.put_u128_le(self.payload().get());
+
+        Ok(initial - buffer.remaining_mut())
+    }
+
+    /// Encode the internal packet into the given buffer
+    fn encode(&self, buffer: &mut [u8], is_tm_packet: bool) -> Result<(), EncodeError> {
+        let available = buffer.remaining_mut();
+        if available < InternalPacket::size() as usize {
+            return Err(EncodeError::BufferTooSmall {
+                required: InternalPacket::size() as usize,
+                available,
+            });
+        }
+
+        let written = self.write_header_to_buffer(buffer, is_tm_packet)?;
+
+        let written = written + self.write_payload_to_buffer(&mut buffer[written..])?;
+
+        let checksum = Self::CRC.checksum(&buffer[..written]);
+
+        // Write the checksum after what's already written
+        (&mut buffer[written..]).put_u16_le(checksum);
 
         Ok(())
     }
@@ -100,7 +130,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0x4D, 0x4E, 0, 0
             ][..]
         );
     }
@@ -118,7 +148,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0x6F, 0xB1, 0, 0
             ][..]
         );
     }
@@ -156,7 +186,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0x4D, 0x4E, 0, 0
             ][..]
         );
     }
@@ -174,7 +204,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0x6F, 0xB1, 0, 0
             ][..]
         );
     }
@@ -196,7 +226,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0x4D, 0x4E, 0, 0
             ][..]
         );
     }
@@ -218,7 +248,7 @@ mod tests {
             buffer,
             &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0x6F, 0xB1, 0, 0
             ][..]
         );
     }

@@ -8,3 +8,4 @@ description = "A packet based protocol for communication with CanSat devices."
 
 [dependencies]
 bytes = { version = "1.10.1", default-features = false }
+crc = "3.2.1"
