@@ -78,8 +78,23 @@ impl InternalPacket {
         &self.payload
     }
 
+    /// Number of bytes introduced by packet metadata
+    /// Corresponds to:
+    /// - 1 byte for the version
+    /// - 1 byte for the length
+    /// - 1 byte for the device ID and packet kind
+    /// - 8 bytes for the timestamp
+    /// - 2 bytes for the CRC
+    /// - 1 termination byte
+    /// - 1 or 2 bytes added by COBS encoding
     fn overhead() -> u8 {
-        11
+        let field_overhead = 1 + 1 + 1 + 8 + 2 + 1;
+        let cobs_overhead = if field_overhead + Self::length() <= 254 {
+            1
+        } else {
+            2
+        };
+        field_overhead + cobs_overhead
     }
 
     fn size() -> u8 {
@@ -217,30 +232,13 @@ mod tests {
     }
 
     #[test]
-    fn tm_packet_overhead_returns_size_of_header() {
-        let payload = Payload::new(0);
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
-        assert_eq!(
-            TmPacket::overhead(),
-            (core::mem::size_of_val(&tm_packet.version())
-                + core::mem::size_of_val(&TmPacket::length())
-                + core::mem::size_of_val(tm_packet.device_id())
-                + core::mem::size_of_val(tm_packet.timestamp())) as u8
-        );
+    fn tm_packet_overhead_returns_correct() {
+        assert_eq!(TmPacket::overhead(), 15);
     }
 
     #[test]
     fn tm_packet_size_returns_size_of_packet() {
-        let payload = Payload::new(0);
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
-        assert_eq!(
-            TmPacket::size(),
-            (core::mem::size_of_val(&tm_packet.version())
-                + core::mem::size_of_val(&TmPacket::length())
-                + core::mem::size_of_val(tm_packet.device_id())
-                + core::mem::size_of_val(tm_packet.timestamp())
-                + core::mem::size_of_val(tm_packet.payload())) as u8
-        );
+        assert_eq!(TmPacket::size(), 15 + 16);
     }
 
     #[test]
@@ -259,30 +257,13 @@ mod tests {
     }
 
     #[test]
-    fn tc_packet_overhead_returns_size_of_header() {
-        let payload = Payload::new(0);
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
-        assert_eq!(
-            TcPacket::overhead(),
-            (core::mem::size_of_val(&tc_packet.version())
-                + core::mem::size_of_val(&TcPacket::length())
-                + core::mem::size_of_val(tc_packet.device_id())
-                + core::mem::size_of_val(tc_packet.timestamp())) as u8
-        );
+    fn tc_packet_overhead_returns_correct() {
+        assert_eq!(TcPacket::overhead(), 15);
     }
 
     #[test]
     fn tc_packet_size_returns_size_of_packet() {
-        let payload = Payload::new(0);
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
-        assert_eq!(
-            TcPacket::size(),
-            (core::mem::size_of_val(&tc_packet.version())
-                + core::mem::size_of_val(&TcPacket::length())
-                + core::mem::size_of_val(tc_packet.device_id())
-                + core::mem::size_of_val(tc_packet.timestamp())
-                + core::mem::size_of_val(tc_packet.payload())) as u8
-        );
+        assert_eq!(TcPacket::size(), 15 + 16);
     }
 
     #[test]

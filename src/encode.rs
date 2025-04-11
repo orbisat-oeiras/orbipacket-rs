@@ -90,7 +90,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..], true).unwrap();
 
@@ -98,7 +98,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
@@ -108,7 +108,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..], false).unwrap();
 
@@ -116,7 +116,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
@@ -126,7 +126,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
 
-        let mut buffer = [0u8; 26];
+        let mut buffer = [0u8; 11];
 
         let result = packet.encode(&mut buffer[..], true);
 
@@ -135,8 +135,8 @@ mod tests {
         assert!(matches!(
             error,
             EncodeError::BufferTooSmall {
-                required: 27,
-                available: 26
+                required: 31,
+                available: 11,
             }
         ));
     }
@@ -146,7 +146,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = crate::TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..]).unwrap();
 
@@ -154,7 +154,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
@@ -164,7 +164,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = crate::TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..]).unwrap();
 
@@ -172,7 +172,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
@@ -186,7 +186,7 @@ mod tests {
             payload,
         ));
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..]).unwrap();
 
@@ -194,7 +194,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
@@ -208,7 +208,7 @@ mod tests {
             payload,
         ));
 
-        let mut buffer = [0u8; 11 + 16];
+        let mut buffer = [0u8; 15 + 16];
 
         packet.encode(&mut buffer[..]).unwrap();
 
@@ -216,7 +216,7 @@ mod tests {
             buffer,
             [
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
     }
