@@ -26,7 +26,7 @@ impl core::error::Error for EncodeError {}
 
 impl InternalPacket {
     /// Encode the internal packet into the given buffer
-    fn encode<T: BufMut>(&self, mut buffer: T, is_tm_packet: bool) -> Result<(), EncodeError> {
+    fn encode(&self, mut buffer: &mut [u8], is_tm_packet: bool) -> Result<(), EncodeError> {
         if buffer.remaining_mut() < InternalPacket::size() as usize {
             return Err(EncodeError::BufferTooSmall {
                 required: InternalPacket::size() as usize,
@@ -47,20 +47,20 @@ impl InternalPacket {
 }
 
 impl TmPacket {
-    pub fn encode<T: BufMut>(&self, buffer: T) -> Result<(), EncodeError> {
+    pub fn encode(&self, buffer: &mut [u8]) -> Result<(), EncodeError> {
         self.0.encode(buffer, true)
     }
 }
 
 impl TcPacket {
-    pub fn encode<T: BufMut>(&self, buffer: T) -> Result<(), EncodeError> {
+    pub fn encode(&self, buffer: &mut [u8]) -> Result<(), EncodeError> {
         self.0.encode(buffer, false)
     }
 }
 
 impl Packet {
     /// Encode the packet into the given buffer
-    pub fn encode<T: BufMut>(&self, buffer: T) -> Result<(), EncodeError> {
+    pub fn encode(&self, buffer: &mut [u8]) -> Result<(), EncodeError> {
         match self {
             Packet::TmPacket(packet) => packet.encode(buffer),
             Packet::TcPacket(packet) => packet.encode(buffer),
@@ -70,6 +70,8 @@ impl Packet {
 
 #[cfg(test)]
 mod tests {
+    use core::borrow::BorrowMut;
+
     use crate::{encode::EncodeError, DeviceId, InternalPacket, Payload, Timestamp, VERSION};
 
     #[test]
@@ -92,14 +94,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..], true).unwrap();
+        packet.encode(buffer.borrow_mut(), true).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 
@@ -110,14 +112,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..], false).unwrap();
+        packet.encode(buffer.borrow_mut(), false).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 
@@ -128,7 +130,7 @@ mod tests {
 
         let mut buffer = [0u8; 11];
 
-        let result = packet.encode(&mut buffer[..], true);
+        let result = packet.encode(buffer.borrow_mut(), true);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
@@ -148,14 +150,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..]).unwrap();
+        packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 
@@ -166,14 +168,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..]).unwrap();
+        packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 
@@ -188,14 +190,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..]).unwrap();
+        packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 
@@ -210,14 +212,14 @@ mod tests {
 
         let mut buffer = [0u8; 15 + 16];
 
-        packet.encode(&mut buffer[..]).unwrap();
+        packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             buffer,
-            [
+            &[
                 VERSION, 16, 0b10000000, 10, 0, 0, 0, 0, 0, 0, 0, 0xEF, 0xCD, 0xAB, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
+            ][..]
         );
     }
 }
