@@ -16,12 +16,7 @@ pub trait Payload: bytemuck::NoUninit {
 }
 
 // Blanket implementation for arrays of u8 with lengths 1 to 255
-impl<const N: usize> Payload for [u8; N]
-where
-    [u8; N]: bytemuck::NoUninit,
-{
-    const SIZE: usize = N;
-}
+impl<const N: usize> Payload for [u8; N] where [u8; N]: bytemuck::NoUninit {}
 
 impl Payload for u8 {}
 impl Payload for u16 {}
