@@ -85,20 +85,12 @@ impl InternalPacket {
     /// - 1 byte for the device ID and packet kind
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
-    /// - 1 termination byte
-    /// - 1 or 2 bytes added by COBS encoding
     const fn overhead() -> usize {
-        let field_overhead = 1 + 1 + 1 + 8 + 2 + 1;
-        let cobs_overhead = if field_overhead + Self::length() <= 254 {
-            1
-        } else {
-            2
-        };
-        field_overhead + cobs_overhead
+        1 + 1 + 1 + 8 + 2
     }
 
     const fn size() -> usize {
-        Self::overhead() + Self::length()
+        corncobs::max_encoded_len(Self::overhead() + Self::length())
     }
 }
 
@@ -230,7 +222,7 @@ mod tests {
 
     #[test]
     fn tm_packet_overhead_returns_correct() {
-        assert_eq!(TmPacket::overhead(), 15);
+        assert_eq!(TmPacket::overhead(), 13);
     }
 
     #[test]
@@ -255,7 +247,7 @@ mod tests {
 
     #[test]
     fn tc_packet_overhead_returns_correct() {
-        assert_eq!(TcPacket::overhead(), 15);
+        assert_eq!(TcPacket::overhead(), 13);
     }
 
     #[test]
