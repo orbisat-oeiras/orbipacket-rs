@@ -102,7 +102,10 @@ impl Packet {
 mod tests {
     use core::borrow::BorrowMut;
 
-    use crate::{encode::EncodeError, DeviceId, InternalPacket, Payload, Timestamp, VERSION};
+    use crate::{
+        encode::EncodeError, DeviceId, InternalPacket, Packet, Payload, TcPacket, Timestamp,
+        TmPacket, VERSION,
+    };
 
     #[test]
     fn encode_error_display() {
@@ -122,7 +125,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; InternalPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut(), true).unwrap();
 
@@ -140,7 +143,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; InternalPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut(), false).unwrap();
 
@@ -158,27 +161,27 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
 
-        let mut buffer = [0u8; 11];
+        let mut buffer = [0u8; (InternalPacket::size() - 1) as usize];
 
         let result = packet.encode(buffer.borrow_mut(), true);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(matches!(
-            error,
-            EncodeError::BufferTooSmall {
-                required: 31,
-                available: 11,
-            }
-        ));
+        assert!(matches!(error, EncodeError::BufferTooSmall { .. }));
+        let EncodeError::BufferTooSmall {
+            required,
+            available,
+        } = error;
+        assert_eq!(required, InternalPacket::size() as usize);
+        assert_eq!(available, buffer.len());
     }
 
     #[test]
     fn tm_packet_encode_works() {
         let payload = Payload::new(0xABCDEF);
-        let packet = crate::TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; TmPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -194,9 +197,9 @@ mod tests {
     #[test]
     fn tc_packet_encode_works() {
         let payload = Payload::new(0xABCDEF);
-        let packet = crate::TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; TcPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -212,13 +215,13 @@ mod tests {
     #[test]
     fn packet_encode_tm_packet_works() {
         let payload = Payload::new(0xABCDEF);
-        let packet = crate::Packet::TmPacket(crate::TmPacket::new(
+        let packet = Packet::TmPacket(TmPacket::new(
             DeviceId::MissingDevice,
             Timestamp(10),
             payload,
         ));
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; TmPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -234,13 +237,13 @@ mod tests {
     #[test]
     fn packet_encode_tc_packet_works() {
         let payload = Payload::new(0xABCDEF);
-        let packet = crate::Packet::TcPacket(crate::TcPacket::new(
+        let packet = Packet::TcPacket(TcPacket::new(
             DeviceId::MissingDevice,
             Timestamp(10),
             payload,
         ));
 
-        let mut buffer = [0u8; 15 + 16];
+        let mut buffer = [0u8; TcPacket::size() as usize];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
