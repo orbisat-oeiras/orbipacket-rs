@@ -20,7 +20,7 @@ impl Payload {
     }
 
     /// Get the length of the payload in bytes
-    pub const fn length() -> u8 {
+    pub const fn length() -> usize {
         16
     }
 }
@@ -62,7 +62,7 @@ impl InternalPacket {
         self.version
     }
 
-    const fn length() -> u8 {
+    const fn length() -> usize {
         Payload::length()
     }
 
@@ -87,7 +87,7 @@ impl InternalPacket {
     /// - 2 bytes for the CRC
     /// - 1 termination byte
     /// - 1 or 2 bytes added by COBS encoding
-    const fn overhead() -> u8 {
+    const fn overhead() -> usize {
         let field_overhead = 1 + 1 + 1 + 8 + 2 + 1;
         let cobs_overhead = if field_overhead + Self::length() <= 254 {
             1
@@ -97,7 +97,7 @@ impl InternalPacket {
         field_overhead + cobs_overhead
     }
 
-    const fn size() -> u8 {
+    const fn size() -> usize {
         Self::overhead() + Self::length()
     }
 }
@@ -116,7 +116,7 @@ impl TmPacket {
         self.0.device_id()
     }
 
-    pub const fn length() -> u8 {
+    pub const fn length() -> usize {
         InternalPacket::length()
     }
 
@@ -132,11 +132,11 @@ impl TmPacket {
         self.0.version()
     }
 
-    pub const fn overhead() -> u8 {
+    pub const fn overhead() -> usize {
         InternalPacket::overhead()
     }
 
-    pub const fn size() -> u8 {
+    pub const fn size() -> usize {
         InternalPacket::size()
     }
 }
@@ -155,7 +155,7 @@ impl TcPacket {
         self.0.device_id()
     }
 
-    pub const fn length() -> u8 {
+    pub const fn length() -> usize {
         InternalPacket::length()
     }
 
@@ -171,11 +171,11 @@ impl TcPacket {
         self.0.version()
     }
 
-    pub const fn overhead() -> u8 {
+    pub const fn overhead() -> usize {
         InternalPacket::overhead()
     }
 
-    pub const fn size() -> u8 {
+    pub const fn size() -> usize {
         InternalPacket::size()
     }
 }
@@ -210,10 +210,7 @@ mod tests {
 
     #[test]
     fn payload_length_returns_size_of_u128() {
-        assert_eq!(
-            Payload::length(),
-            core::mem::size_of::<u128>().try_into().unwrap()
-        );
+        assert_eq!(Payload::length(), core::mem::size_of::<u128>());
     }
 
     #[test]

@@ -30,17 +30,24 @@ impl InternalPacket {
     /// Write the header data into the provided buffer
     ///
     /// The number of written bytes is returned.
+    ///
+    /// # Panics
+    /// This method will panic if `Self::length()` doesn't fit in a single byte.
+    /// That would mean the payload is larger than 255 bytes, which is not allowed by the protocol.
     fn write_header_to_buffer(
         &self,
         mut buffer: &mut [u8],
         is_tm_packet: bool,
     ) -> Result<usize, EncodeError> {
         let initial = buffer.remaining_mut();
+
         buffer.put_u8(self.version());
-        buffer.put_u8(Self::length());
+        buffer.put_u8(Self::length().try_into().unwrap());
+
         let control = *self.device_id() as u8;
         let control = control | if is_tm_packet { 0 } else { 1 << 7 };
         buffer.put_u8(control);
+
         buffer.put_u64_le(self.timestamp().0);
 
         Ok(initial - buffer.remaining_mut())
@@ -48,6 +55,7 @@ impl InternalPacket {
 
     fn write_payload_to_buffer(&self, mut buffer: &mut [u8]) -> Result<usize, EncodeError> {
         let initial = buffer.remaining_mut();
+
         buffer.put_u128_le(self.payload().get());
 
         Ok(initial - buffer.remaining_mut())
@@ -56,9 +64,9 @@ impl InternalPacket {
     /// Encode the internal packet into the given buffer
     fn encode(&self, buffer: &mut [u8], is_tm_packet: bool) -> Result<(), EncodeError> {
         let available = buffer.remaining_mut();
-        if available < InternalPacket::size() as usize {
+        if available < InternalPacket::size() {
             return Err(EncodeError::BufferTooSmall {
-                required: InternalPacket::size() as usize,
+                required: InternalPacket::size(),
                 available,
             });
         }
@@ -71,6 +79,7 @@ impl InternalPacket {
 
         // Write the checksum after what's already written
         (&mut buffer[written..]).put_u16_le(checksum);
+        let written = written + 2;
 
         Ok(())
     }
@@ -125,7 +134,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::size() as usize];
+        let mut buffer = [0u8; InternalPacket::size()];
 
         packet.encode(buffer.borrow_mut(), true).unwrap();
 
@@ -143,7 +152,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::size() as usize];
+        let mut buffer = [0u8; InternalPacket::size()];
 
         packet.encode(buffer.borrow_mut(), false).unwrap();
 
@@ -161,7 +170,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
 
-        let mut buffer = [0u8; (InternalPacket::size() - 1) as usize];
+        let mut buffer = [0u8; InternalPacket::size() - 1];
 
         let result = packet.encode(buffer.borrow_mut(), true);
 
@@ -172,7 +181,7 @@ mod tests {
             required,
             available,
         } = error;
-        assert_eq!(required, InternalPacket::size() as usize);
+        assert_eq!(required, InternalPacket::size());
         assert_eq!(available, buffer.len());
     }
 
@@ -181,7 +190,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; TmPacket::size() as usize];
+        let mut buffer = [0u8; TmPacket::size()];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -199,7 +208,7 @@ mod tests {
         let payload = Payload::new(0xABCDEF);
         let packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; TcPacket::size() as usize];
+        let mut buffer = [0u8; TcPacket::size()];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -221,7 +230,7 @@ mod tests {
             payload,
         ));
 
-        let mut buffer = [0u8; TmPacket::size() as usize];
+        let mut buffer = [0u8; TmPacket::size()];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
@@ -243,7 +252,7 @@ mod tests {
             payload,
         ));
 
-        let mut buffer = [0u8; TcPacket::size() as usize];
+        let mut buffer = [0u8; TcPacket::size()];
 
         packet.encode(buffer.borrow_mut()).unwrap();
 
