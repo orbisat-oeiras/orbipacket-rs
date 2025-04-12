@@ -18,6 +18,16 @@ pub enum DeviceId {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Timestamp(u64);
 
+impl Timestamp {
+    pub fn new(timestamp: u64) -> Self {
+        Timestamp(timestamp)
+    }
+
+    pub fn get(&self) -> u64 {
+        self.0
+    }
+}
+
 /// A packet containing metadata and a payload
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 struct InternalPacket<P: Payload> {
