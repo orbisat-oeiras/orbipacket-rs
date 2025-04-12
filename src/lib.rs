@@ -20,7 +20,7 @@ impl Payload {
     }
 
     /// Get the length of the payload in bytes
-    pub fn length() -> u8 {
+    pub const fn length() -> u8 {
         16
     }
 }
@@ -62,7 +62,7 @@ impl InternalPacket {
         self.version
     }
 
-    fn length() -> u8 {
+    const fn length() -> u8 {
         Payload::length()
     }
 
@@ -87,7 +87,7 @@ impl InternalPacket {
     /// - 2 bytes for the CRC
     /// - 1 termination byte
     /// - 1 or 2 bytes added by COBS encoding
-    fn overhead() -> u8 {
+    const fn overhead() -> u8 {
         let field_overhead = 1 + 1 + 1 + 8 + 2 + 1;
         let cobs_overhead = if field_overhead + Self::length() <= 254 {
             1
@@ -97,7 +97,7 @@ impl InternalPacket {
         field_overhead + cobs_overhead
     }
 
-    fn size() -> u8 {
+    const fn size() -> u8 {
         Self::overhead() + Self::length()
     }
 }
@@ -116,7 +116,7 @@ impl TmPacket {
         self.0.device_id()
     }
 
-    pub fn length() -> u8 {
+    pub const fn length() -> u8 {
         InternalPacket::length()
     }
 
@@ -132,11 +132,11 @@ impl TmPacket {
         self.0.version()
     }
 
-    pub fn overhead() -> u8 {
+    pub const fn overhead() -> u8 {
         InternalPacket::overhead()
     }
 
-    pub fn size() -> u8 {
+    pub const fn size() -> u8 {
         InternalPacket::size()
     }
 }
@@ -155,7 +155,7 @@ impl TcPacket {
         self.0.device_id()
     }
 
-    pub fn length() -> u8 {
+    pub const fn length() -> u8 {
         InternalPacket::length()
     }
 
@@ -171,11 +171,11 @@ impl TcPacket {
         self.0.version()
     }
 
-    pub fn overhead() -> u8 {
+    pub const fn overhead() -> u8 {
         InternalPacket::overhead()
     }
 
-    pub fn size() -> u8 {
+    pub const fn size() -> u8 {
         InternalPacket::size()
     }
 }
