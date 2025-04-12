@@ -1,5 +1,66 @@
 #![cfg_attr(not(test), no_std)]
 
+//! This crate implements the [OrbiPacket](https://github.com/orbisat-oeiras/orbipacket) protocol,
+//! developed for communication with CanSat devices by the OrbiSat Oeiras team.
+//!
+//! This crate is `no_std` compatible, and can be used in embedded systems. It also doesn't perform any
+//! heap allocations.
+//!
+//! # Basics
+//! Packets come in to flavours, each represented by a struct:
+//! - [TmPacket]: telemetry packet
+//! - [TcPacket]: telecommand packet
+//!
+//! Both packet types are generic over the payload type, which must implement the [Payload] trait.
+//!
+//! It is also possible to refer to a general packet using the [Packet] enum, which has variants for
+//! both packet types.
+//!
+//! # Packet structure
+//! The packet structs closely follow the protocol's specification, which provides a full reference.
+//! A brief summary of the structs' fields is given below:
+//! - `version`: indicates the version of the protocol the packet adheres to
+//! - `payload_length`: length of the payload, in bytes
+//1 - `device_id`: see [DeviceId]
+//! - `timestamp`: see [Timestamp]
+//! - `payload`: the actual data
+//!
+//! # Encoding
+//! Packets provide methods for encoding themselves into a byte slice, which can then be sent over
+//! any communication channel.
+//!
+//! ```rust
+//! use orbipacket::{TmPacket, DeviceId, Timestamp};
+//!
+//! let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp::new(1234), *b"hello world");
+//! let mut buffer = [0u8; TmPacket::<[u8; 11]>::encode_buffer_size()];
+//!
+//! let encoded = packet.encode(&mut buffer).unwrap();
+//!
+//! assert_eq!(encoded, &[3, 0x01, 11, 3, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 90, 199, 0][..]);
+//! ```
+//!
+//! Note that the `encode` method returns a slice into the provided buffer containing the encoded packet.
+//! After that slice is dropped, the buffer can be reused to encode another packet.
+//!
+//! ## Buffer size
+//! Currently, encoding a packet requires a buffer approximately twice the size of the actual encoded packet.
+//! This is due to the use of the [corncobs](https://crates.io/crates/corncobs) crate for encoding, which
+//! operates buffer-to-buffer. Thus, the first half of the buffer is used to write the packet fields (as a sort
+//! of intermediate value), and the second half is then used to write the encoded packet and returned. This
+//! leads to sub-optimal memory usage, which is a compromise made to avoid the use of allocations.
+//!
+//! # Decoding
+//! TODO: Decoding isn't implemented yet.
+//!
+//! # Payload
+//! All packets are generic over the payload type, which is bound by the [Payload] trait. This trait provides
+//! a method, `to_le_bytes()` to convert the payload into a byte slice, which is used for encoding. It also checks, at compile
+//! time, that the payload size is less than 256 bytes, as required by the protocol. However, there's a slight
+//! catch: due to the nature of compile time size checks, the assertion is evaluated only when `to_le_bytes()`
+//! is called. This means that a payload type larger than 255 bytes won't result in any error whatsoever, unless
+//! an attempt is made to encode it. This is sub-optimal, but it is enough to assure the protocol is followed.
+
 static VERSION: u8 = 0x01;
 
 pub mod payload;
