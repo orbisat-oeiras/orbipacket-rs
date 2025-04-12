@@ -2,28 +2,8 @@
 
 static VERSION: u8 = 0x01;
 
-/// Data contained inside a packet
-///
-/// TODO: Make the payload generic
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct Payload(u128);
-
-impl Payload {
-    /// Create a new payload
-    pub fn new(data: u128) -> Self {
-        Payload(data)
-    }
-
-    /// Get the data contained in the payload
-    pub fn get(&self) -> u128 {
-        self.0
-    }
-
-    /// Get the length of the payload in bytes
-    pub const fn length() -> usize {
-        16
-    }
-}
+pub mod payload;
+use payload::Payload;
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
@@ -212,7 +192,7 @@ mod tests {
         assert_eq!(tm_packet.version(), VERSION);
         assert_eq!(tm_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tm_packet.timestamp().0, 0);
-        assert_eq!(tm_packet.payload().0, 0);
+        assert_eq!(tm_packet.payload().get(), 0);
     }
 
     #[test]
@@ -237,7 +217,7 @@ mod tests {
         assert_eq!(tc_packet.version(), VERSION);
         assert_eq!(tc_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tc_packet.timestamp().0, 0);
-        assert_eq!(tc_packet.payload().0, 0);
+        assert_eq!(tc_packet.payload().get(), 0);
     }
 
     #[test]
@@ -257,28 +237,28 @@ mod tests {
 
     #[test]
     fn packet_is_tm_packet_returns_true_for_tm_packet() {
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload::new(0));
         let packet = Packet::TmPacket(tm_packet);
         assert!(packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tm_packet_returns_false_for_tc_packet() {
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload::new(0));
         let packet = Packet::TcPacket(tc_packet);
         assert!(!packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_true_for_tc_packet() {
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload::new(0));
         let packet = Packet::TcPacket(tc_packet);
         assert!(packet.is_tc_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_false_for_tm_packet() {
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload(0));
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), Payload::new(0));
         let packet = Packet::TmPacket(tm_packet);
         assert!(!packet.is_tc_packet());
     }
