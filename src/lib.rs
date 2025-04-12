@@ -3,7 +3,7 @@
 static VERSION: u8 = 0x01;
 
 pub mod payload;
-use payload::Payload;
+pub use payload::Payload;
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
@@ -47,7 +47,10 @@ impl<P: Payload> InternalPacket<P> {
             payload,
         }
     }
+}
 
+/// # Packet field getters
+impl<P: Payload> InternalPacket<P> {
     fn version(&self) -> u8 {
         self.version
     }
@@ -63,8 +66,12 @@ impl<P: Payload> InternalPacket<P> {
     fn payload(&self) -> &P {
         &self.payload
     }
+}
 
+/// # Packet size
+impl<P: Payload> InternalPacket<P> {
     /// Number of bytes introduced by packet metadata
+    ///
     /// Corresponds to:
     /// - 1 byte for the version
     /// - 1 byte for the length
@@ -75,12 +82,14 @@ impl<P: Payload> InternalPacket<P> {
         1 + 1 + 1 + 8 + 2
     }
 
-    const fn length() -> usize {
+    /// Length of the payload contained in a packet, in bytes
+    const fn payload_length() -> usize {
         P::SIZE
     }
 
+    /// Total size of the packet, in bytes
     const fn size() -> usize {
-        corncobs::max_encoded_len(Self::overhead() + Self::length())
+        corncobs::max_encoded_len(Self::overhead() + Self::payload_length())
     }
 }
 
@@ -93,7 +102,10 @@ impl<P: Payload> TmPacket<P> {
     pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: P) -> Self {
         TmPacket(InternalPacket::new(device_id, timestamp, payload))
     }
+}
 
+/// # Packet field getters
+impl<P: Payload> TmPacket<P> {
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
     }
@@ -109,15 +121,28 @@ impl<P: Payload> TmPacket<P> {
     pub fn version(&self) -> u8 {
         self.0.version()
     }
+}
 
+/// # Packet size
+impl<P: Payload> TmPacket<P> {
+    /// Number of bytes introduced by packet metadata
+    ///
+    /// Corresponds to:
+    /// - 1 byte for the version
+    /// - 1 byte for the length
+    /// - 1 byte for the device ID and packet kind
+    /// - 8 bytes for the timestamp
+    /// - 2 bytes for the CRC
     pub const fn overhead() -> usize {
         InternalPacket::<P>::overhead()
     }
 
-    pub const fn length() -> usize {
-        InternalPacket::<P>::length()
+    /// Length of the payload contained in a packet, in bytes
+    pub const fn payload_length() -> usize {
+        InternalPacket::<P>::payload_length()
     }
 
+    /// Total size of the packet, in bytes
     pub const fn size() -> usize {
         InternalPacket::<P>::size()
     }
@@ -132,7 +157,10 @@ impl<P: Payload> TcPacket<P> {
     pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: P) -> Self {
         TcPacket(InternalPacket::new(device_id, timestamp, payload))
     }
+}
 
+/// # Packet field getters
+impl<P: Payload> TcPacket<P> {
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
     }
@@ -148,21 +176,34 @@ impl<P: Payload> TcPacket<P> {
     pub fn version(&self) -> u8 {
         self.0.version()
     }
+}
 
+/// # Packet size
+impl<P: Payload> TcPacket<P> {
+    /// Number of bytes introduced by packet metadata
+    ///
+    /// Corresponds to:
+    /// - 1 byte for the version
+    /// - 1 byte for the length
+    /// - 1 byte for the device ID and packet kind
+    /// - 8 bytes for the timestamp
+    /// - 2 bytes for the CRC
     pub const fn overhead() -> usize {
         InternalPacket::<P>::overhead()
     }
 
-    pub const fn length() -> usize {
-        InternalPacket::<P>::length()
+    /// Length of the payload contained in a packet, in bytes
+    pub const fn payload_length() -> usize {
+        InternalPacket::<P>::payload_length()
     }
 
+    /// Total size of the packet, in bytes
     pub const fn size() -> usize {
         InternalPacket::<P>::size()
     }
 }
 
-/// A packet is either a telemetry packet or a telecommand packet
+/// Either a telemetry packet or a telecommand packet
 pub enum Packet<P: Payload> {
     TmPacket(TmPacket<P>),
     TcPacket(TcPacket<P>),
@@ -185,6 +226,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn timestamp_getters_return_values_from_constructor() {
+        let timestamp = Timestamp::new(1234);
+        assert_eq!(timestamp.get(), 1234);
+    }
+
+    #[test]
     fn tm_packet_getters_return_values_from_constructor() {
         let payload = 0u8;
         let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
@@ -196,7 +243,7 @@ mod tests {
 
     #[test]
     fn tm_packet_length_returns_size_of_payload() {
-        assert_eq!(TmPacket::<u8>::length(), u8::SIZE);
+        assert_eq!(TmPacket::<u8>::payload_length(), u8::SIZE);
     }
 
     #[test]
@@ -221,7 +268,7 @@ mod tests {
 
     #[test]
     fn tc_packet_length_returns_size_of_payload() {
-        assert_eq!(TcPacket::<u8>::length(), u8::SIZE);
+        assert_eq!(TcPacket::<u8>::payload_length(), u8::SIZE);
     }
 
     #[test]

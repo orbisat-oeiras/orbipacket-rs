@@ -2,8 +2,10 @@ use bytes::BufMut;
 
 use crate::{payload::Payload, InternalPacket, Packet, TcPacket, TmPacket};
 
+/// Error that can occur when encoding a packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum EncodeError {
+    /// The provided buffer is too small to hold the encoded packet
     BufferTooSmall { required: usize, available: usize },
 }
 
@@ -27,10 +29,13 @@ impl core::error::Error for EncodeError {}
 impl<P: Payload> InternalPacket<P> {
     const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// The buffer passed to the `encode` method must be at least this size.
     pub const fn encode_buffer_size() -> usize {
         // For encoding, we first write the header, payload and CRC to the buffer (overhead + length bytes).
         // Then, we use the remainder of the buffer as the COBS output buffer.
-        Self::overhead() + Self::length() + Self::size()
+        Self::overhead() + Self::payload_length() + Self::size()
     }
 
     /// Write the header data into the provided buffer
@@ -40,15 +45,12 @@ impl<P: Payload> InternalPacket<P> {
     /// # Panics
     /// This method will panic if `Self::length()` doesn't fit in a single byte.
     /// That would mean the payload is larger than 255 bytes, which is not allowed by the protocol.
-    fn write_header_to_buffer(
-        &self,
-        mut buffer: &mut [u8],
-        is_tm_packet: bool,
-    ) -> Result<usize, EncodeError> {
+    /// Of course, since `Payload` does a compile time check for this, this function should never panic.
+    fn write_header_to_buffer(&self, mut buffer: &mut [u8], is_tm_packet: bool) -> usize {
         let initial = buffer.remaining_mut();
 
         buffer.put_u8(self.version());
-        buffer.put_u8(Self::length().try_into().unwrap());
+        buffer.put_u8(Self::payload_length().try_into().unwrap());
 
         let control = *self.device_id() as u8;
         let control = control | if is_tm_packet { 0 } else { 1 << 7 };
@@ -56,21 +58,24 @@ impl<P: Payload> InternalPacket<P> {
 
         buffer.put_u64_le(self.timestamp().0);
 
-        Ok(initial - buffer.remaining_mut())
+        initial - buffer.remaining_mut()
     }
 
-    fn write_payload_to_buffer(&self, mut buffer: &mut [u8]) -> Result<usize, EncodeError> {
+    /// Write the payload data into the provided buffer
+    ///
+    /// The number of written bytes is returned.
+    fn write_payload_to_buffer(&self, mut buffer: &mut [u8]) -> usize {
         let initial = buffer.remaining_mut();
 
         buffer.put_slice(self.payload().to_le_bytes());
 
-        Ok(initial - buffer.remaining_mut())
+        initial - buffer.remaining_mut()
     }
 
-    /// Encode the internal packet into the given buffer
+    /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
+    /// encoded packet.
     ///
-    /// The provided buffer must be at least `2 * InternalPacket::size()` bytes long. It will be
-    /// advanced so that the reference is `InternalPacket::size()` bytes long after the call.
+    /// The provided buffer must be at least `Self::encode_buffer_size()` bytes long.
     fn encode<'a>(
         &self,
         buffer: &'a mut [u8],
@@ -84,9 +89,9 @@ impl<P: Payload> InternalPacket<P> {
             });
         }
 
-        let written = self.write_header_to_buffer(buffer, is_tm_packet)?;
+        let written = self.write_header_to_buffer(buffer, is_tm_packet);
 
-        let written = written + self.write_payload_to_buffer(&mut buffer[written..])?;
+        let written = written + self.write_payload_to_buffer(&mut buffer[written..]);
 
         let checksum = Self::CRC.checksum(&buffer[..written]);
 
@@ -102,19 +107,51 @@ impl<P: Payload> InternalPacket<P> {
 }
 
 impl<P: Payload> TmPacket<P> {
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// The buffer passed to the `encode` method must be at least this size.
+    pub const fn encode_buffer_size() -> usize {
+        InternalPacket::<P>::encode_buffer_size()
+    }
+
+    /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
+    /// encoded packet.
+    ///
+    /// The provided buffer must be at least `Self::encode_buffer_size()` bytes long.
     pub fn encode<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], EncodeError> {
         self.0.encode(buffer, true)
     }
 }
 
 impl<P: Payload> TcPacket<P> {
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// The buffer passed to the `encode` method must be at least this size.
+    pub const fn encode_buffer_size() -> usize {
+        InternalPacket::<P>::encode_buffer_size()
+    }
+
+    /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
+    /// encoded packet.
+    ///
+    /// The provided buffer must be at least `Self::encode_buffer_size()` bytes long.
     pub fn encode<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], EncodeError> {
         self.0.encode(buffer, false)
     }
 }
 
 impl<P: Payload> Packet<P> {
-    /// Encode the packet into the given buffer
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// The buffer passed to the `encode` method must be at least this size.
+    pub const fn encode_buffer_size() -> usize {
+        InternalPacket::<P>::encode_buffer_size()
+    }
+
+    /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
+    /// encoded packet.
+    ///
+    /// The provided buffer must be at least `Self::encode_buffer_size()` bytes long.
     pub fn encode<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], EncodeError> {
         match self {
             Packet::TmPacket(packet) => packet.encode(buffer),
