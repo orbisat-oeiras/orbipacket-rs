@@ -62,10 +62,6 @@ impl InternalPacket {
         self.version
     }
 
-    const fn length() -> usize {
-        Payload::length()
-    }
-
     fn device_id(&self) -> &DeviceId {
         &self.device_id
     }
@@ -89,6 +85,10 @@ impl InternalPacket {
         1 + 1 + 1 + 8 + 2
     }
 
+    const fn length() -> usize {
+        Payload::length()
+    }
+
     const fn size() -> usize {
         corncobs::max_encoded_len(Self::overhead() + Self::length())
     }
@@ -108,10 +108,6 @@ impl TmPacket {
         self.0.device_id()
     }
 
-    pub const fn length() -> usize {
-        InternalPacket::length()
-    }
-
     pub fn payload(&self) -> &Payload {
         self.0.payload()
     }
@@ -126,6 +122,10 @@ impl TmPacket {
 
     pub const fn overhead() -> usize {
         InternalPacket::overhead()
+    }
+
+    pub const fn length() -> usize {
+        InternalPacket::length()
     }
 
     pub const fn size() -> usize {
@@ -147,10 +147,6 @@ impl TcPacket {
         self.0.device_id()
     }
 
-    pub const fn length() -> usize {
-        InternalPacket::length()
-    }
-
     pub fn payload(&self) -> &Payload {
         self.0.payload()
     }
@@ -165,6 +161,10 @@ impl TcPacket {
 
     pub const fn overhead() -> usize {
         InternalPacket::overhead()
+    }
+
+    pub const fn length() -> usize {
+        InternalPacket::length()
     }
 
     pub const fn size() -> usize {
