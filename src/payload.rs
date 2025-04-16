@@ -1,37 +1,51 @@
-/// Data contained inside a packet, which can be converted to raw bytes.
-///
-/// This trait cannot be implemented for types larger than 255 bytes, assuring payload
-/// size complies with the protocol.
-pub trait Payload: bytemuck::NoUninit {
-    /// Size of the payload in bytes.
-    const SIZE: usize = core::mem::size_of::<Self>();
-    /// Used internally for compile-time assertion of payload size.
-    const SIZE_BOUND: () = assert!(Self::SIZE < 256, "Payload size must be less than 256 bytes");
+use core::fmt::Display;
 
-    /// Convert a payload into a byte slice.
-    ///
-    /// This method will result in a compile-time error if the payload size is larger than 255 bytes.
-    fn to_le_bytes(&self) -> &[u8] {
-        // Make sure the const assertion is evaluated at compile time
-        // This will result in a compile-time error when trying to convert
-        // a type larger than 255 bytes to a byte slice
-        #[allow(clippy::let_unit_value)]
-        let _ = Self::SIZE_BOUND;
-        bytemuck::bytes_of(self)
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum PayloadError {
+    PayloadTooLong { length: usize },
+}
+
+impl Display for PayloadError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            PayloadError::PayloadTooLong { length } => {
+                write!(f, "Payload too long: {} bytes", length)
+            }
+        }
     }
 }
 
-/// Blanket implementation for arrays of u8 of suitable length
-impl<const N: usize> Payload for [u8; N] where [u8; N]: bytemuck::NoUninit {}
+impl core::error::Error for PayloadError {}
 
-impl Payload for u8 {}
-impl Payload for u16 {}
-impl Payload for u32 {}
-impl Payload for u64 {}
-impl Payload for u128 {}
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct Payload([u8; 255]);
 
-impl Payload for i8 {}
-impl Payload for i16 {}
-impl Payload for i32 {}
-impl Payload for i64 {}
-impl Payload for i128 {}
+impl Payload {
+    pub const SIZE: usize = 255;
+
+    pub fn new() -> Self {
+        Self([0; 255])
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PayloadError> {
+        if bytes.len() > 255 {
+            return Err(PayloadError::PayloadTooLong {
+                length: bytes.len(),
+            });
+        }
+        let mut payload = Self::new();
+        payload.0[..bytes.len()].copy_from_slice(bytes);
+        Ok(payload)
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        // Return a slice of the payload array up to the last non-zero byte
+        let mut last_non_zero = 0;
+        for (i, &byte) in self.0.iter().enumerate() {
+            if byte != 0 {
+                last_non_zero = i;
+            }
+        }
+        &self.0[..=last_non_zero]
+    }
+}

@@ -1,6 +1,6 @@
 use bytes::BufMut;
 
-use crate::{payload::Payload, InternalPacket, Packet, TcPacket, TmPacket};
+use crate::{InternalPacket, Packet, TcPacket, TmPacket};
 
 /// Error that can occur when encoding a packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -26,7 +26,7 @@ impl core::fmt::Display for EncodeError {
 
 impl core::error::Error for EncodeError {}
 
-impl<P: Payload> InternalPacket<P> {
+impl InternalPacket {
     const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
     /// Size of the buffer needed to encode the packet
@@ -46,11 +46,16 @@ impl<P: Payload> InternalPacket<P> {
     /// This method will panic if `Self::length()` doesn't fit in a single byte.
     /// That would mean the payload is larger than 255 bytes, which is not allowed by the protocol.
     /// Of course, since `Payload` does a compile time check for this, this function should never panic.
-    fn write_header_to_buffer(&self, mut buffer: &mut [u8], is_tm_packet: bool) -> usize {
+    fn write_header_to_buffer(
+        &self,
+        mut buffer: &mut [u8],
+        is_tm_packet: bool,
+        payload_length: u8,
+    ) -> usize {
         let initial = buffer.remaining_mut();
 
         buffer.put_u8(self.version());
-        buffer.put_u8(Self::payload_length().try_into().unwrap());
+        buffer.put_u8(payload_length);
 
         let control = *self.device_id() as u8;
         let control = control | if is_tm_packet { 0 } else { 1 << 7 };
@@ -64,10 +69,10 @@ impl<P: Payload> InternalPacket<P> {
     /// Write the payload data into the provided buffer
     ///
     /// The number of written bytes is returned.
-    fn write_payload_to_buffer(&self, mut buffer: &mut [u8]) -> usize {
+    fn write_payload_to_buffer(&self, mut buffer: &mut [u8], payload: &[u8]) -> usize {
         let initial = buffer.remaining_mut();
 
-        buffer.put_slice(self.payload().to_le_bytes());
+        buffer.put_slice(payload);
 
         initial - buffer.remaining_mut()
     }
@@ -82,16 +87,18 @@ impl<P: Payload> InternalPacket<P> {
         is_tm_packet: bool,
     ) -> Result<&'a [u8], EncodeError> {
         let available = buffer.remaining_mut();
-        if available < InternalPacket::<P>::encode_buffer_size() {
+        if available < InternalPacket::encode_buffer_size() {
             return Err(EncodeError::BufferTooSmall {
-                required: InternalPacket::<P>::encode_buffer_size(),
+                required: InternalPacket::encode_buffer_size(),
                 available,
             });
         }
 
-        let written = self.write_header_to_buffer(buffer, is_tm_packet);
+        let payload = self.payload.as_bytes();
 
-        let written = written + self.write_payload_to_buffer(&mut buffer[written..]);
+        let written = self.write_header_to_buffer(buffer, is_tm_packet, payload.len() as u8);
+
+        let written = written + self.write_payload_to_buffer(&mut buffer[written..], payload);
 
         let checksum = Self::CRC.checksum(&buffer[..written]);
 
@@ -106,12 +113,12 @@ impl<P: Payload> InternalPacket<P> {
     }
 }
 
-impl<P: Payload> TmPacket<P> {
+impl TmPacket {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
     pub const fn encode_buffer_size() -> usize {
-        InternalPacket::<P>::encode_buffer_size()
+        InternalPacket::encode_buffer_size()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -123,12 +130,12 @@ impl<P: Payload> TmPacket<P> {
     }
 }
 
-impl<P: Payload> TcPacket<P> {
+impl TcPacket {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
     pub const fn encode_buffer_size() -> usize {
-        InternalPacket::<P>::encode_buffer_size()
+        InternalPacket::encode_buffer_size()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -140,12 +147,12 @@ impl<P: Payload> TcPacket<P> {
     }
 }
 
-impl<P: Payload> Packet<P> {
+impl Packet {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
     pub const fn encode_buffer_size() -> usize {
-        InternalPacket::<P>::encode_buffer_size()
+        InternalPacket::encode_buffer_size()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -165,9 +172,13 @@ mod tests {
     use core::borrow::BorrowMut;
 
     use crate::{
-        encode::EncodeError, DeviceId, InternalPacket, Packet, TcPacket, Timestamp, TmPacket,
-        VERSION,
+        encode::EncodeError, DeviceId, InternalPacket, Packet, Payload, TcPacket, Timestamp,
+        TmPacket, VERSION,
     };
+
+    fn payload(data: u32) -> Payload {
+        Payload::from_bytes(data.to_le_bytes().as_slice()).unwrap()
+    }
 
     #[test]
     fn encode_error_display() {
@@ -184,43 +195,40 @@ mod tests {
 
     #[test]
     fn internal_packet_encode_tm_packet_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut(), true).unwrap();
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 4, 2, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x69, 0x5B, 0][..]
+            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
         );
     }
 
     #[test]
     fn internal_packet_encode_tc_packet_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut(), false).unwrap();
 
         assert_eq!(
             encoded,
-            &[
-                5, VERSION, 4, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x79,
-                0xE0, 0
-            ][..]
+            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
         );
     }
 
     #[test]
     fn internal_packet_encode_buffer_too_small() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size() - 1];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size() - 1];
 
         let result = packet.encode(buffer.borrow_mut(), true);
 
@@ -231,81 +239,75 @@ mod tests {
             required,
             available,
         } = error;
-        assert_eq!(required, InternalPacket::<u32>::encode_buffer_size());
+        assert_eq!(required, InternalPacket::encode_buffer_size());
         assert_eq!(available, buffer.len());
     }
 
     #[test]
     fn tm_packet_encode_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 4, 2, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x69, 0x5B, 0][..]
+            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
         );
     }
 
     #[test]
     fn tc_packet_encode_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[
-                5, VERSION, 4, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x79,
-                0xE0, 0
-            ][..]
+            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
         );
     }
 
     #[test]
     fn packet_encode_tm_packet_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = Packet::TmPacket(TmPacket::new(
             DeviceId::MissingDevice,
             Timestamp(10),
             payload,
         ));
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 4, 2, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x69, 0x5B, 0][..]
+            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
         );
     }
 
     #[test]
     fn packet_encode_tc_packet_works() {
-        let payload = 0xABCDEFu32;
+        let payload = payload(0xABCDEFu32);
         let packet = Packet::TcPacket(TcPacket::new(
             DeviceId::MissingDevice,
             Timestamp(10),
             payload,
         ));
 
-        let mut buffer = [0u8; InternalPacket::<u32>::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[
-                5, VERSION, 4, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 0x79,
-                0xE0, 0
-            ][..]
+            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
         );
     }
 }
