@@ -269,6 +269,7 @@ impl TcPacket {
 }
 
 /// Either a telemetry packet or a telecommand packet
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Packet {
     TmPacket(TmPacket),
     TcPacket(TcPacket),
