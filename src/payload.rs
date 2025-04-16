@@ -49,3 +49,23 @@ impl Payload {
         &self.0[..=last_non_zero]
     }
 }
+
+impl Default for Payload {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TryFrom<&[u8]> for Payload {
+    type Error = PayloadError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        Self::from_bytes(value)
+    }
+}
+
+impl AsRef<[u8]> for Payload {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
