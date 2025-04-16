@@ -7,7 +7,6 @@ authors = ["Levi Gomes", "The OrbiSat Oeiras Team"]
 description = "A packet based protocol for communication with CanSat devices."
 
 [dependencies]
-bytemuck = "1.22.0"
 bytes = { version = "1.10.1", default-features = false }
 corncobs = "0.1.3"
 crc = "3.2.1"
