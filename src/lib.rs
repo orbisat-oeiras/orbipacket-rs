@@ -30,10 +30,14 @@
 //! any communication channel.
 //!
 //! ```rust
-//! use orbipacket::{TmPacket, DeviceId, Timestamp};
+//! use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
 //!
-//! let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp::new(1234), *b"hello world");
-//! let mut buffer = [0u8; TmPacket::<[u8; 11]>::encode_buffer_size()];
+//! let packet = TmPacket::new(
+//!     DeviceId::MissingDevice,
+//!     Timestamp::new(1234),
+//!     Payload::from_bytes(b"hello world").unwrap(),
+//! );
+//! let mut buffer = [0u8; TmPacket::encode_buffer_size()];
 //!
 //! let encoded = packet.encode(&mut buffer).unwrap();
 //!
@@ -91,16 +95,16 @@ impl Timestamp {
 
 /// A packet containing metadata and a payload
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-struct InternalPacket<P: Payload> {
+struct InternalPacket {
     version: u8,
     device_id: DeviceId,
     timestamp: Timestamp,
-    payload: P,
+    payload: Payload,
 }
 
-impl<P: Payload> InternalPacket<P> {
+impl InternalPacket {
     /// Create a new packet
-    fn new(device_id: DeviceId, timestamp: Timestamp, payload: P) -> Self {
+    fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         InternalPacket {
             version: VERSION,
             device_id,
@@ -111,7 +115,7 @@ impl<P: Payload> InternalPacket<P> {
 }
 
 /// # Packet field getters
-impl<P: Payload> InternalPacket<P> {
+impl InternalPacket {
     fn version(&self) -> u8 {
         self.version
     }
@@ -124,13 +128,13 @@ impl<P: Payload> InternalPacket<P> {
         &self.timestamp
     }
 
-    fn payload(&self) -> &P {
+    fn payload(&self) -> &Payload {
         &self.payload
     }
 }
 
 /// # Packet size
-impl<P: Payload> InternalPacket<P> {
+impl InternalPacket {
     /// Number of bytes introduced by packet metadata
     ///
     /// Corresponds to:
@@ -145,7 +149,7 @@ impl<P: Payload> InternalPacket<P> {
 
     /// Length of the payload contained in a packet, in bytes
     const fn payload_length() -> usize {
-        P::SIZE
+        Payload::SIZE
     }
 
     /// Total size of the packet, in bytes
@@ -156,22 +160,22 @@ impl<P: Payload> InternalPacket<P> {
 
 /// A telemetry packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct TmPacket<P: Payload>(InternalPacket<P>);
+pub struct TmPacket(InternalPacket);
 
-impl<P: Payload> TmPacket<P> {
+impl TmPacket {
     /// Create a new telemetry packet
-    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: P) -> Self {
+    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TmPacket(InternalPacket::new(device_id, timestamp, payload))
     }
 }
 
 /// # Packet field getters
-impl<P: Payload> TmPacket<P> {
+impl TmPacket {
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
     }
 
-    pub fn payload(&self) -> &P {
+    pub fn payload(&self) -> &Payload {
         self.0.payload()
     }
 
@@ -185,7 +189,7 @@ impl<P: Payload> TmPacket<P> {
 }
 
 /// # Packet size
-impl<P: Payload> TmPacket<P> {
+impl TmPacket {
     /// Number of bytes introduced by packet metadata
     ///
     /// Corresponds to:
@@ -195,38 +199,38 @@ impl<P: Payload> TmPacket<P> {
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const fn overhead() -> usize {
-        InternalPacket::<P>::overhead()
+        InternalPacket::overhead()
     }
 
     /// Length of the payload contained in a packet, in bytes
     pub const fn payload_length() -> usize {
-        InternalPacket::<P>::payload_length()
+        InternalPacket::payload_length()
     }
 
     /// Total size of the packet, in bytes
     pub const fn size() -> usize {
-        InternalPacket::<P>::size()
+        InternalPacket::size()
     }
 }
 
 /// A telecommand packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct TcPacket<P: Payload>(InternalPacket<P>);
+pub struct TcPacket(InternalPacket);
 
-impl<P: Payload> TcPacket<P> {
+impl TcPacket {
     /// Create a new telecommand packet
-    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: P) -> Self {
+    pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TcPacket(InternalPacket::new(device_id, timestamp, payload))
     }
 }
 
 /// # Packet field getters
-impl<P: Payload> TcPacket<P> {
+impl TcPacket {
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
     }
 
-    pub fn payload(&self) -> &P {
+    pub fn payload(&self) -> &Payload {
         self.0.payload()
     }
 
@@ -240,7 +244,7 @@ impl<P: Payload> TcPacket<P> {
 }
 
 /// # Packet size
-impl<P: Payload> TcPacket<P> {
+impl TcPacket {
     /// Number of bytes introduced by packet metadata
     ///
     /// Corresponds to:
@@ -250,27 +254,27 @@ impl<P: Payload> TcPacket<P> {
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const fn overhead() -> usize {
-        InternalPacket::<P>::overhead()
+        InternalPacket::overhead()
     }
 
     /// Length of the payload contained in a packet, in bytes
     pub const fn payload_length() -> usize {
-        InternalPacket::<P>::payload_length()
+        InternalPacket::payload_length()
     }
 
     /// Total size of the packet, in bytes
     pub const fn size() -> usize {
-        InternalPacket::<P>::size()
+        InternalPacket::size()
     }
 }
 
 /// Either a telemetry packet or a telecommand packet
-pub enum Packet<P: Payload> {
-    TmPacket(TmPacket<P>),
-    TcPacket(TcPacket<P>),
+pub enum Packet {
+    TmPacket(TmPacket),
+    TcPacket(TcPacket),
 }
 
-impl<P: Payload> Packet<P> {
+impl Packet {
     pub fn is_tm_packet(&self) -> bool {
         matches!(self, Packet::TmPacket(_))
     }
@@ -286,6 +290,10 @@ pub mod encode;
 mod tests {
     use super::*;
 
+    fn payload(byte: u8) -> Payload {
+        Payload::from_bytes(&[byte]).unwrap()
+    }
+
     #[test]
     fn timestamp_getters_return_values_from_constructor() {
         let timestamp = Timestamp::new(1234);
@@ -294,78 +302,82 @@ mod tests {
 
     #[test]
     fn tm_packet_getters_return_values_from_constructor() {
-        let payload = 0u8;
+        let payload = payload(3u8);
         let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tm_packet.version(), VERSION);
         assert_eq!(tm_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tm_packet.timestamp().0, 0);
-        assert_eq!(*tm_packet.payload(), 0u8);
+        assert_eq!(*tm_packet.payload(), payload);
     }
 
     #[test]
     fn tm_packet_length_returns_size_of_payload() {
-        assert_eq!(TmPacket::<u8>::payload_length(), u8::SIZE);
+        assert_eq!(TmPacket::payload_length(), Payload::SIZE);
     }
 
     #[test]
     fn tm_packet_overhead_returns_correct() {
-        assert_eq!(TmPacket::<u8>::overhead(), 13);
+        assert_eq!(TmPacket::overhead(), 13);
     }
 
     #[test]
     fn tm_packet_size_returns_size_of_packet() {
-        assert_eq!(TmPacket::<u8>::size(), 15 + 1);
+        assert_eq!(TmPacket::size(), 15 + 256);
     }
 
     #[test]
     fn tc_packet_getters_return_values_from_constructor() {
-        let payload = 0u8;
+        let payload = payload(3u8);
         let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         assert_eq!(tc_packet.version(), VERSION);
         assert_eq!(tc_packet.device_id(), &DeviceId::MissingDevice);
         assert_eq!(tc_packet.timestamp().0, 0);
-        assert_eq!(*tc_packet.payload(), 0);
+        assert_eq!(*tc_packet.payload(), payload);
     }
 
     #[test]
     fn tc_packet_length_returns_size_of_payload() {
-        assert_eq!(TcPacket::<u8>::payload_length(), u8::SIZE);
+        assert_eq!(TcPacket::payload_length(), Payload::SIZE);
     }
 
     #[test]
     fn tc_packet_overhead_returns_correct() {
-        assert_eq!(TcPacket::<u8>::overhead(), 13);
+        assert_eq!(TcPacket::overhead(), 13);
     }
 
     #[test]
     fn tc_packet_size_returns_size_of_packet() {
-        assert_eq!(TcPacket::<u8>::size(), 15 + 1);
+        assert_eq!(TcPacket::size(), 15 + 256);
     }
 
     #[test]
     fn packet_is_tm_packet_returns_true_for_tm_packet() {
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), 0u8);
+        let payload = payload(3u8);
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         let packet = Packet::TmPacket(tm_packet);
         assert!(packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tm_packet_returns_false_for_tc_packet() {
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), 0u8);
+        let payload = payload(3u8);
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         let packet = Packet::TcPacket(tc_packet);
         assert!(!packet.is_tm_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_true_for_tc_packet() {
-        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), 0u8);
+        let payload = payload(3u8);
+        let tc_packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         let packet = Packet::TcPacket(tc_packet);
         assert!(packet.is_tc_packet());
     }
 
     #[test]
     fn packet_is_tc_packet_returns_false_for_tm_packet() {
-        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), 0u8);
+        let payload = payload(3u8);
+        let tm_packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
         let packet = Packet::TmPacket(tm_packet);
         assert!(!packet.is_tc_packet());
     }
