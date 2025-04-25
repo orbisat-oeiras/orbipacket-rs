@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn internal_packet_encode_tm_packet_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = InternalPacket::new(DeviceId::System, Timestamp(10), payload);
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn internal_packet_encode_tc_packet_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = InternalPacket::new(DeviceId::System, Timestamp(10), payload);
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn internal_packet_encode_buffer_too_small() {
         let payload = payload(0xABCDEFu32);
-        let packet = InternalPacket::new(DeviceId::MissingDevice, Timestamp(0), payload);
+        let packet = InternalPacket::new(DeviceId::System, Timestamp(0), payload);
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size() - 1];
 
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn tm_packet_encode_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = TmPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = TmPacket::new(DeviceId::System, Timestamp(10), payload);
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn tc_packet_encode_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = TcPacket::new(DeviceId::MissingDevice, Timestamp(10), payload);
+        let packet = TcPacket::new(DeviceId::System, Timestamp(10), payload);
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
@@ -276,11 +276,7 @@ mod tests {
     #[test]
     fn packet_encode_tm_packet_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = Packet::TmPacket(TmPacket::new(
-            DeviceId::MissingDevice,
-            Timestamp(10),
-            payload,
-        ));
+        let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp(10), payload));
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
@@ -295,11 +291,7 @@ mod tests {
     #[test]
     fn packet_encode_tc_packet_works() {
         let payload = payload(0xABCDEFu32);
-        let packet = Packet::TcPacket(TcPacket::new(
-            DeviceId::MissingDevice,
-            Timestamp(10),
-            payload,
-        ));
+        let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp(10), payload));
 
         let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
 
