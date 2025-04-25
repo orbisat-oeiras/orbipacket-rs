@@ -33,7 +33,7 @@
 //! use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
 //!
 //! let packet = TmPacket::new(
-//!     DeviceId::MissingDevice,
+//!     DeviceId::System,
 //!     Timestamp::new(1234),
 //!     Payload::from_bytes(b"hello world").unwrap(),
 //! );
@@ -41,7 +41,7 @@
 //!
 //! let encoded = packet.encode(&mut buffer).unwrap();
 //!
-//! assert_eq!(encoded, &[3, 0x01, 11, 3, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 90, 199, 0][..]);
+//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 223, 75, 0][..]);
 //! ```
 //!
 //! Note that the `encode` method returns a slice into the provided buffer containing the encoded packet.

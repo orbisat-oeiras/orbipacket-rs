@@ -58,7 +58,7 @@ impl InternalPacket {
         buffer.put_u8(payload_length);
 
         let control = *self.device_id() as u8;
-        let control = control | if is_tm_packet { 0 } else { 1 << 7 };
+        let control = control << 2 | if is_tm_packet { 0 } else { 1 << 7 };
         buffer.put_u8(control);
 
         buffer.put_u64_le(self.timestamp().0);
@@ -204,7 +204,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
+            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
         );
     }
 
@@ -219,7 +219,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
+            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
         );
     }
 
@@ -254,7 +254,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
+            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
         );
     }
 
@@ -269,7 +269,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
+            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
         );
     }
 
@@ -284,7 +284,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[3, VERSION, 3, 2, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 7, 50, 0][..]
+            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
         );
     }
 
@@ -299,7 +299,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 0b10000000, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 20, 86, 0][..]
+            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
         );
     }
 }
