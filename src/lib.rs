@@ -7,11 +7,9 @@
 //! heap allocations.
 //!
 //! # Basics
-//! Packets come in to flavours, each represented by a struct:
+//! Packets come in two flavours, each represented by a struct:
 //! - [TmPacket]: telemetry packet
 //! - [TcPacket]: telecommand packet
-//!
-//! Both packet types are generic over the payload type, which must implement the [Payload] trait.
 //!
 //! It is also possible to refer to a general packet using the [Packet] enum, which has variants for
 //! both packet types.
@@ -56,14 +54,6 @@
 //!
 //! # Decoding
 //! TODO: Decoding isn't implemented yet.
-//!
-//! # Payload
-//! All packets are generic over the payload type, which is bound by the [Payload] trait. This trait provides
-//! a method, `to_le_bytes()` to convert the payload into a byte slice, which is used for encoding. It also checks, at compile
-//! time, that the payload size is less than 256 bytes, as required by the protocol. However, there's a slight
-//! catch: due to the nature of compile time size checks, the assertion is evaluated only when `to_le_bytes()`
-//! is called. This means that a payload type larger than 255 bytes won't result in any error whatsoever, unless
-//! an attempt is made to encode it. This is sub-optimal, but it is enough to assure the protocol is followed.
 
 static VERSION: u8 = 0x01;
 
