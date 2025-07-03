@@ -38,7 +38,8 @@ impl Payload {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PayloadError> {
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, PayloadError> {
+        let bytes = bytes.as_ref();
         if bytes.len() > Self::MAX_SIZE {
             return Err(PayloadError::PayloadTooLong {
                 length: bytes.len(),
