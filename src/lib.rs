@@ -60,12 +60,16 @@ static VERSION: u8 = 0x01;
 pub mod payload;
 use core::fmt::Display;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub use payload::Payload;
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
 /// TODO: Autogenerate the enum variants from the protocol mapping
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(u8)]
 pub enum DeviceId {
     System = 1,
@@ -95,6 +99,7 @@ impl Display for DeviceId {
 
 /// Time in nanoseconds since the Unix epoch
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Timestamp(u64);
 
 impl Display for Timestamp {
@@ -115,6 +120,7 @@ impl Timestamp {
 
 /// A packet containing metadata and a payload
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct InternalPacket {
     version: u8,
     device_id: DeviceId,
@@ -180,6 +186,7 @@ impl InternalPacket {
 
 /// A telemetry packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
@@ -246,6 +253,7 @@ impl Display for TmPacket {
 
 /// A telecommand packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
@@ -312,6 +320,7 @@ impl Display for TcPacket {
 
 /// Either a telemetry packet or a telecommand packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Packet {
     TmPacket(TmPacket),
     TcPacket(TcPacket),

@@ -1,5 +1,8 @@
 use core::fmt::Display;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum PayloadError {
     PayloadTooLong { length: usize },
@@ -18,7 +21,10 @@ impl Display for PayloadError {
 impl core::error::Error for PayloadError {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct Payload([u8; 255]);
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Payload(
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))] [u8; 255],
+);
 
 impl Payload {
     pub const SIZE: usize = 255;
