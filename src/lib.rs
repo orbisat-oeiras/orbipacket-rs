@@ -19,7 +19,7 @@
 //! A brief summary of the structs' fields is given below:
 //! - `version`: indicates the version of the protocol the packet adheres to
 //! - `payload_length`: length of the payload, in bytes
-//1 - `device_id`: see [DeviceId]
+//! - `device_id`: see [DeviceId]
 //! - `timestamp`: see [Timestamp]
 //! - `payload`: the actual data
 //!
@@ -58,6 +58,8 @@
 static VERSION: u8 = 0x01;
 
 pub mod payload;
+use core::fmt::Display;
+
 pub use payload::Payload;
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
@@ -70,14 +72,36 @@ pub enum DeviceId {
     PressureSensor = 2,
     TemperatureSensor = 3,
     HumiditySensor = 4,
-    GPS = 5,
+    Gps = 5,
     Accelerometer = 6,
     Unknown = 31,
+}
+
+impl Display for DeviceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            DeviceId::System => write!(f, "System Device (ID {})", *self as u8),
+            DeviceId::PressureSensor => write!(f, "Pressure Sensor Device (ID {})", *self as u8),
+            DeviceId::TemperatureSensor => {
+                write!(f, "Temperature Sensor Device (ID {})", *self as u8)
+            }
+            DeviceId::HumiditySensor => write!(f, "Humidity Sensor Device (ID {})", *self as u8),
+            DeviceId::Gps => write!(f, "GPS Device (ID {})", *self as u8),
+            DeviceId::Accelerometer => write!(f, "Accelerometer Device (ID {})", *self as u8),
+            DeviceId::Unknown => write!(f, "Unknown Device (ID {})", *self as u8),
+        }
+    }
 }
 
 /// Time in nanoseconds since the Unix epoch
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Timestamp(u64);
+
+impl Display for Timestamp {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{} ns", self.0)
+    }
+}
 
 impl Timestamp {
     pub fn new(timestamp: u64) -> Self {
@@ -209,6 +233,17 @@ impl TmPacket {
     }
 }
 
+impl Display for TmPacket {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "Telemetry packet from {} with timestamp {}",
+            self.device_id(),
+            self.timestamp()
+        )
+    }
+}
+
 /// A telecommand packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct TcPacket(InternalPacket);
@@ -261,6 +296,17 @@ impl TcPacket {
     /// Total size of the packet, in bytes
     pub const fn size() -> usize {
         InternalPacket::size()
+    }
+}
+
+impl Display for TcPacket {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "Telecommand packet to {} with timestamp {}",
+            self.device_id(),
+            self.timestamp()
+        )
     }
 }
 

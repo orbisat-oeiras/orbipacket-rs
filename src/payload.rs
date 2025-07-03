@@ -9,7 +9,7 @@ impl Display for PayloadError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             PayloadError::PayloadTooLong { length } => {
-                write!(f, "Payload too long: {} bytes", length)
+                write!(f, "payload too long: {} bytes", length)
             }
         }
     }
