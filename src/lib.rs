@@ -174,14 +174,14 @@ impl InternalPacket {
     const MAX_SIZE: usize = Self::OVERHEAD + Payload::MAX_SIZE;
 
     /// Maximum size of an encoded packet, in bytes
-    const MAX_ENCODED_SIZE: usize = corncobs::max_encoded_len(Self::MAX_SIZE);
+    const MAX_ENCODED_SIZE: usize = cobs::max_encoding_length(Self::MAX_SIZE) + 1;
 
     fn size(&self) -> usize {
         Self::OVERHEAD + self.payload.length()
     }
 
     fn encoded_size(&self) -> usize {
-        corncobs::max_encoded_len(self.size())
+        cobs::max_encoding_length(self.size()) + 1
     }
 }
 

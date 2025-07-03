@@ -110,9 +110,10 @@ impl InternalPacket {
         let written = written + 2;
 
         let (buffer_unencoded, cobs_buffer) = buffer.split_at_mut(written);
-        let encoded = corncobs::encode_buf(buffer_unencoded, cobs_buffer);
+        let encoded = cobs::encode(buffer_unencoded, cobs_buffer);
+        buffer[written + encoded] = 0;
 
-        Ok(&buffer[written..(written + encoded)])
+        Ok(&buffer[written..(written + encoded + 1)])
     }
 }
 
