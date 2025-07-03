@@ -22,37 +22,40 @@ impl core::error::Error for PayloadError {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Payload(
-    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))] [u8; 255],
-);
+pub struct Payload {
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
+    data: [u8; 255],
+    length: usize,
+}
 
 impl Payload {
-    pub const SIZE: usize = 255;
+    pub const MAX_SIZE: usize = 255;
 
     pub fn new() -> Self {
-        Self([0; 255])
+        Self {
+            data: [0; 255],
+            length: 0,
+        }
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PayloadError> {
-        if bytes.len() > 255 {
+        if bytes.len() > Self::MAX_SIZE {
             return Err(PayloadError::PayloadTooLong {
                 length: bytes.len(),
             });
         }
         let mut payload = Self::new();
-        payload.0[..bytes.len()].copy_from_slice(bytes);
+        payload.data[..bytes.len()].copy_from_slice(bytes);
+        payload.length = bytes.len();
         Ok(payload)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        // Return a slice of the payload array up to the last non-zero byte
-        let mut last_non_zero = 0;
-        for (i, &byte) in self.0.iter().enumerate() {
-            if byte != 0 {
-                last_non_zero = i;
-            }
-        }
-        &self.0[..=last_non_zero]
+        &self.data[..=self.length]
+    }
+
+    pub fn length(&self) -> usize {
+        self.length
     }
 }
 

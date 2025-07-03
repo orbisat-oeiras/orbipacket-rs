@@ -35,11 +35,11 @@
 //!     Timestamp::new(1234),
 //!     Payload::from_bytes(b"hello world").unwrap(),
 //! );
-//! let mut buffer = [0u8; TmPacket::encode_buffer_size()];
+//! let mut buffer = [0u8; TmPacket::MAX_ENCODE_BUFFER_SIZE];
 //!
 //! let encoded = packet.encode(&mut buffer).unwrap();
 //!
-//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 223, 75, 0][..]);
+//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 12, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 3, 43, 169, 0][..]);
 //! ```
 //!
 //! Note that the `encode` method returns a slice into the provided buffer containing the encoded packet.
@@ -169,18 +169,19 @@ impl InternalPacket {
     /// - 1 byte for the device ID and packet kind
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
-    const fn overhead() -> usize {
-        1 + 1 + 1 + 8 + 2
+    const OVERHEAD: usize = 1 + 1 + 1 + 8 + 2;
+
+    const MAX_SIZE: usize = Self::OVERHEAD + Payload::MAX_SIZE;
+
+    /// Maximum size of an encoded packet, in bytes
+    const MAX_ENCODED_SIZE: usize = corncobs::max_encoded_len(Self::MAX_SIZE);
+
+    fn size(&self) -> usize {
+        Self::OVERHEAD + self.payload.length()
     }
 
-    /// Length of the payload contained in a packet, in bytes
-    const fn payload_length() -> usize {
-        Payload::SIZE
-    }
-
-    /// Total size of the packet, in bytes
-    const fn size() -> usize {
-        corncobs::max_encoded_len(Self::overhead() + Self::payload_length())
+    fn encoded_size(&self) -> usize {
+        corncobs::max_encoded_len(self.size())
     }
 }
 
@@ -225,18 +226,19 @@ impl TmPacket {
     /// - 1 byte for the device ID and packet kind
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
-    pub const fn overhead() -> usize {
-        InternalPacket::overhead()
+    pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
+
+    pub const MAX_SIZE: usize = InternalPacket::MAX_SIZE;
+
+    /// Maximum size of an encoded packet, in bytes
+    pub const MAX_ENCODED_SIZE: usize = InternalPacket::MAX_ENCODED_SIZE;
+
+    pub fn size(&self) -> usize {
+        self.0.size()
     }
 
-    /// Length of the payload contained in a packet, in bytes
-    pub const fn payload_length() -> usize {
-        InternalPacket::payload_length()
-    }
-
-    /// Total size of the packet, in bytes
-    pub const fn size() -> usize {
-        InternalPacket::size()
+    pub fn encoded_size(&self) -> usize {
+        self.0.encoded_size()
     }
 }
 
@@ -292,18 +294,19 @@ impl TcPacket {
     /// - 1 byte for the device ID and packet kind
     /// - 8 bytes for the timestamp
     /// - 2 bytes for the CRC
-    pub const fn overhead() -> usize {
-        InternalPacket::overhead()
+    pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
+
+    pub const MAX_SIZE: usize = InternalPacket::MAX_SIZE;
+
+    /// Maximum size of an encoded packet, in bytes
+    pub const MAX_ENCODED_SIZE: usize = InternalPacket::MAX_ENCODED_SIZE;
+
+    pub fn size(&self) -> usize {
+        self.0.size()
     }
 
-    /// Length of the payload contained in a packet, in bytes
-    pub const fn payload_length() -> usize {
-        InternalPacket::payload_length()
-    }
-
-    /// Total size of the packet, in bytes
-    pub const fn size() -> usize {
-        InternalPacket::size()
+    pub fn encoded_size(&self) -> usize {
+        self.0.encoded_size()
     }
 }
 
@@ -363,18 +366,13 @@ mod tests {
     }
 
     #[test]
-    fn tm_packet_length_returns_size_of_payload() {
-        assert_eq!(TmPacket::payload_length(), Payload::SIZE);
-    }
-
-    #[test]
     fn tm_packet_overhead_returns_correct() {
-        assert_eq!(TmPacket::overhead(), 13);
+        assert_eq!(TmPacket::OVERHEAD, 13);
     }
 
     #[test]
     fn tm_packet_size_returns_size_of_packet() {
-        assert_eq!(TmPacket::size(), 15 + 256);
+        assert_eq!(TmPacket::MAX_ENCODED_SIZE, 15 + 256);
     }
 
     #[test]
@@ -388,18 +386,13 @@ mod tests {
     }
 
     #[test]
-    fn tc_packet_length_returns_size_of_payload() {
-        assert_eq!(TcPacket::payload_length(), Payload::SIZE);
-    }
-
-    #[test]
     fn tc_packet_overhead_returns_correct() {
-        assert_eq!(TcPacket::overhead(), 13);
+        assert_eq!(TcPacket::OVERHEAD, 13);
     }
 
     #[test]
     fn tc_packet_size_returns_size_of_packet() {
-        assert_eq!(TcPacket::size(), 15 + 256);
+        assert_eq!(TcPacket::MAX_ENCODED_SIZE, 15 + 256);
     }
 
     #[test]

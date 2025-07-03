@@ -1,6 +1,6 @@
 use bytes::BufMut;
 
-use crate::{InternalPacket, Packet, TcPacket, TmPacket};
+use crate::{InternalPacket, Packet, Payload, TcPacket, TmPacket};
 
 /// Error that can occur when encoding a packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -29,13 +29,16 @@ impl core::error::Error for EncodeError {}
 impl InternalPacket {
     const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
-    /// Size of the buffer needed to encode the packet
+    /// Maximum size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
-    pub const fn encode_buffer_size() -> usize {
-        // For encoding, we first write the header, payload and CRC to the buffer (overhead + length bytes).
-        // Then, we use the remainder of the buffer as the COBS output buffer.
-        Self::overhead() + Self::payload_length() + Self::size()
+    // For encoding, we first write the header, payload and CRC to the buffer (overhead + payload size bytes).
+    // Then, we use the remainder of the buffer as the COBS output buffer.
+    const MAX_ENCODE_BUFFER_SIZE: usize =
+        Self::OVERHEAD + Payload::MAX_SIZE + Self::MAX_ENCODED_SIZE;
+
+    fn encode_buffer_size(&self) -> usize {
+        Self::OVERHEAD + self.payload.length() + self.encoded_size()
     }
 
     /// Write the header data into the provided buffer
@@ -87,18 +90,18 @@ impl InternalPacket {
         is_tm_packet: bool,
     ) -> Result<&'a [u8], EncodeError> {
         let available = buffer.remaining_mut();
-        if available < InternalPacket::encode_buffer_size() {
+        if available < self.encode_buffer_size() {
             return Err(EncodeError::BufferTooSmall {
-                required: InternalPacket::encode_buffer_size(),
+                required: self.encode_buffer_size(),
                 available,
             });
         }
 
-        let payload = self.payload.as_bytes();
+        let written =
+            self.write_header_to_buffer(buffer, is_tm_packet, self.payload.length() as u8);
 
-        let written = self.write_header_to_buffer(buffer, is_tm_packet, payload.len() as u8);
-
-        let written = written + self.write_payload_to_buffer(&mut buffer[written..], payload);
+        let written =
+            written + self.write_payload_to_buffer(&mut buffer[written..], self.payload.as_bytes());
 
         let checksum = Self::CRC.checksum(&buffer[..written]);
 
@@ -117,8 +120,10 @@ impl TmPacket {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
-    pub const fn encode_buffer_size() -> usize {
-        InternalPacket::encode_buffer_size()
+    pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
+
+    pub fn encode_buffer_size(&self) -> usize {
+        self.0.encode_buffer_size()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -134,8 +139,10 @@ impl TcPacket {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
-    pub const fn encode_buffer_size() -> usize {
-        InternalPacket::encode_buffer_size()
+    pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
+
+    pub fn encode_buffer_size(&self) -> usize {
+        self.0.encode_buffer_size()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -151,8 +158,13 @@ impl Packet {
     /// Size of the buffer needed to encode the packet
     ///
     /// The buffer passed to the `encode` method must be at least this size.
-    pub const fn encode_buffer_size() -> usize {
-        InternalPacket::encode_buffer_size()
+    pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
+
+    pub fn encode_buffer_size(&self) -> usize {
+        match self {
+            Packet::TmPacket(tm_packet) => tm_packet.encode_buffer_size(),
+            Packet::TcPacket(tc_packet) => tc_packet.encode_buffer_size(),
+        }
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -189,7 +201,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "Buffer too small: required 27 bytes, but only 26 available"
+            "buffer too small: required 27 bytes, but only 26 available"
         );
     }
 
@@ -198,13 +210,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::System, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut(), true).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
         );
     }
 
@@ -213,13 +225,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::System, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut(), false).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
         );
     }
 
@@ -228,7 +240,7 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = InternalPacket::new(DeviceId::System, Timestamp(0), payload);
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size() - 1];
+        let mut buffer = [0u8; 5];
 
         let result = packet.encode(buffer.borrow_mut(), true);
 
@@ -239,7 +251,7 @@ mod tests {
             required,
             available,
         } = error;
-        assert_eq!(required, InternalPacket::encode_buffer_size());
+        assert_eq!(required, packet.encode_buffer_size());
         assert_eq!(available, buffer.len());
     }
 
@@ -248,13 +260,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = TmPacket::new(DeviceId::System, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
         );
     }
 
@@ -263,13 +275,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = TcPacket::new(DeviceId::System, Timestamp(10), payload);
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
         );
     }
 
@@ -278,13 +290,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp(10), payload));
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 4, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 118, 221, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
         );
     }
 
@@ -293,13 +305,13 @@ mod tests {
         let payload = payload(0xABCDEFu32);
         let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp(10), payload));
 
-        let mut buffer = [0u8; InternalPacket::encode_buffer_size()];
+        let mut buffer = [0u8; InternalPacket::MAX_ENCODE_BUFFER_SIZE];
 
         let encoded = packet.encode(buffer.borrow_mut()).unwrap();
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 3, 132, 10, 1, 1, 1, 1, 1, 1, 6, 0xEF, 0xCD, 0xAB, 101, 185, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
         );
     }
 }
