@@ -52,7 +52,7 @@ impl Payload {
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        &self.data[..=self.length]
+        &self.data[..self.length]
     }
 
     pub fn length(&self) -> usize {

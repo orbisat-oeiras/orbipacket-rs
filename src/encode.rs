@@ -216,7 +216,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
         );
     }
 
@@ -231,7 +231,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
         );
     }
 
@@ -266,7 +266,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
         );
     }
 
@@ -281,7 +281,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
         );
     }
 
@@ -296,7 +296,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 173, 120, 0][..]
+            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
         );
     }
 
@@ -311,7 +311,7 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 1, 3, 118, 176, 0][..]
+            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
         );
     }
 }
