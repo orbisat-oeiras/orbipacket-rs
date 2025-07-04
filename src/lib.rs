@@ -21,11 +21,12 @@
 //! - `payload_length`: length of the payload, in bytes
 //! - `device_id`: see [DeviceId]
 //! - `timestamp`: see [Timestamp]
-//! - `payload`: the actual data
+//! - `payload`: application specific data
 //!
 //! # Encoding
-//! Packets provide methods for encoding themselves into a byte slice, which can then be sent over
-//! any communication channel.
+//! Packets can be encoded into a buffer using any of [TmPacket::encode], [TcPacket::encode] or
+//! [Packet::encode]. All these methods accept a mutable byte slice to which they write the encoded
+//! packet, returning a slice into the buffer guaranteed to contain exactly the packet's bytes.
 //!
 //! ```rust
 //! use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
@@ -33,24 +34,49 @@
 //! let packet = TmPacket::new(
 //!     DeviceId::System,
 //!     Timestamp::new(1234),
-//!     Payload::from_bytes(b"hello world").unwrap(),
+//!     Payload::from_bytes(b"hello world")?,
 //! );
-//! let mut buffer = [0u8; TmPacket::MAX_ENCODE_BUFFER_SIZE];
+//! let mut buffer = [1u8; 500];
 //!
-//! let encoded = packet.encode(&mut buffer).unwrap();
+//! let encoded = packet.encode(&mut buffer)?;
 //!
-//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 12, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 3, 43, 169, 0][..]);
+//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 223, 75, 0][..]);
+//! assert_eq!(encoded.len(), packet.encoded_size());
+//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
+//! By dropping the returned slice, the same buffer can be used to encode multiple packets sequentially
+//! or inside a loop, allowing for efficient memory usage.
 //!
-//! Note that the `encode` method returns a slice into the provided buffer containing the encoded packet.
-//! After that slice is dropped, the buffer can be reused to encode another packet.
+//! ```rust
+//! use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+//!
+//! let mut buffer = [0u8; 500];
+//!
+//! for i in 1..10u8 {
+//!     let packet = TmPacket::new(
+//!         DeviceId::System,
+//!         Timestamp::new(1234),
+//!         Payload::from_bytes([i])?,
+//!     );
+//!
+//!     let encoded = packet.encode(&mut buffer)?;
+//!
+//!     assert!(matches!(encoded, [6, 0x01, 1, 4, 210, 4, 1, 1, 1, 1, 1, 4, i, _, _, 0]));
+//!     assert_eq!(encoded.len(), packet.encoded_size());
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
 //!
 //! ## Buffer size
 //! Currently, encoding a packet requires a buffer approximately twice the size of the actual encoded packet.
-//! This is due to the use of the [corncobs](https://crates.io/crates/corncobs) crate for encoding, which
-//! operates buffer-to-buffer. Thus, the first half of the buffer is used to write the packet fields (as a sort
-//! of intermediate value), and the second half is then used to write the encoded packet and returned. This
-//! leads to sub-optimal memory usage, which is a compromise made to avoid the use of allocations.
+//! This is necessary because COBS encoding must be done buffer-to-buffer. Thus, the first half of the provided
+//! buffer is used to write the packet fields (as a sort of intermediate value), and the second half is then
+//! used to write the COBS-encoded packet and returned. This leads to sub-optimal memory usage, which is a
+//! compromise made to avoid the use of allocations. The provided constants [TmPacket::MAX_ENCODE_BUFFER_SIZE]
+//! and [TmPacket::MAX_ENCODE_BUFFER_SIZE] can be used to allocate buffers large enough to encode any packet.
+//! If the buffers are dynamically allocated, then the methods [TmPacket::encode_buffer_size] and
+//! [TcPacket::encode_buffer_size] can be used instead to obtain a buffer large enough to encode a specific
+//! packet.
 //!
 //! # Decoding
 //! TODO: Decoding isn't implemented yet.
