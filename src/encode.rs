@@ -1,5 +1,3 @@
-use bytes::BufMut;
-
 use crate::{InternalPacket, Packet, Payload, TcPacket, TmPacket};
 
 /// Error that can occur when encoding a packet
@@ -51,33 +49,34 @@ impl InternalPacket {
     /// Of course, since `Payload` does a compile time check for this, this function should never panic.
     fn write_header_to_buffer(
         &self,
-        mut buffer: &mut [u8],
+        buffer: &mut [u8],
         is_tm_packet: bool,
         payload_length: u8,
     ) -> usize {
-        let initial = buffer.remaining_mut();
+        let mut idx = 0;
 
-        buffer.put_u8(self.version());
-        buffer.put_u8(payload_length);
+        buffer[idx] = self.version();
+        idx += 1;
+
+        buffer[idx] = payload_length;
+        idx += 1;
 
         let control = *self.device_id() as u8;
         let control = control << 2 | if is_tm_packet { 0 } else { 1 << 7 };
-        buffer.put_u8(control);
+        buffer[idx] = control;
+        idx += 1;
 
-        buffer.put_u64_le(self.timestamp().0);
+        buffer[idx..idx + 8].copy_from_slice(&self.timestamp().get().to_le_bytes());
 
-        initial - buffer.remaining_mut()
+        idx + 8
     }
 
     /// Write the payload data into the provided buffer
     ///
     /// The number of written bytes is returned.
-    fn write_payload_to_buffer(&self, mut buffer: &mut [u8], payload: &[u8]) -> usize {
-        let initial = buffer.remaining_mut();
-
-        buffer.put_slice(payload);
-
-        initial - buffer.remaining_mut()
+    fn write_payload_to_buffer(&self, buffer: &mut [u8], payload: &[u8]) -> usize {
+        buffer[..payload.len()].copy_from_slice(payload);
+        payload.len()
     }
 
     /// Encode the packet into the given buffer. Returns a slice of the buffer containing the
@@ -89,31 +88,31 @@ impl InternalPacket {
         buffer: &'a mut [u8],
         is_tm_packet: bool,
     ) -> Result<&'a [u8], EncodeError> {
-        let available = buffer.remaining_mut();
-        if available < self.encode_buffer_size() {
+        let available = buffer.len();
+        let required = self.encode_buffer_size();
+        if available < required {
             return Err(EncodeError::BufferTooSmall {
-                required: self.encode_buffer_size(),
+                required,
                 available,
             });
         }
 
-        let written =
+        let mut idx =
             self.write_header_to_buffer(buffer, is_tm_packet, self.payload.length() as u8);
 
-        let written =
-            written + self.write_payload_to_buffer(&mut buffer[written..], self.payload.as_bytes());
+        idx += self.write_payload_to_buffer(&mut buffer[idx..], self.payload.as_bytes());
 
-        let checksum = Self::CRC.checksum(&buffer[..written]);
+        let checksum = Self::CRC.checksum(&buffer[..idx]);
 
         // Write the checksum after what's already written
-        (&mut buffer[written..]).put_u16_le(checksum);
-        let written = written + 2;
+        buffer[idx..idx + 2].copy_from_slice(&checksum.to_le_bytes());
+        idx += 2;
 
-        let (buffer_unencoded, cobs_buffer) = buffer.split_at_mut(written);
+        let (buffer_unencoded, cobs_buffer) = buffer.split_at_mut(idx);
         let encoded = cobs::encode(buffer_unencoded, cobs_buffer);
-        buffer[written + encoded] = 0;
+        buffer[idx + encoded] = 0;
 
-        Ok(&buffer[written..(written + encoded + 1)])
+        Ok(&buffer[idx..(idx + encoded + 1)])
     }
 }
 
