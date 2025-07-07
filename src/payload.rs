@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum PayloadError {
-    PayloadTooLong { length: usize },
+    PayloadTooLong(usize),
 }
 
 impl Display for PayloadError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            PayloadError::PayloadTooLong { length } => {
+            PayloadError::PayloadTooLong(length) => {
                 write!(f, "payload too long: {} bytes", length)
             }
         }
@@ -41,9 +41,7 @@ impl Payload {
     pub fn from_raw_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, PayloadError> {
         let bytes = bytes.as_ref();
         if bytes.len() > Self::MAX_SIZE {
-            return Err(PayloadError::PayloadTooLong {
-                length: bytes.len(),
-            });
+            return Err(PayloadError::PayloadTooLong(bytes.len()));
         }
         let mut payload = Self::new();
         payload.data[..bytes.len()].copy_from_slice(bytes);
