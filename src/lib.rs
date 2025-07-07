@@ -84,12 +84,11 @@
 static VERSION: u8 = 0x01;
 
 pub mod payload;
-use core::fmt::Display;
+pub use payload::Payload;
 
+use core::fmt::Display;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-pub use payload::Payload;
 
 /// The ID of a device onboard the CanSat, as specified by the protocol
 ///
