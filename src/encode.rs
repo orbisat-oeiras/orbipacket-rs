@@ -15,8 +15,7 @@ impl core::fmt::Display for EncodeError {
                 available,
             } => write!(
                 f,
-                "buffer too small: required {} bytes, but only {} available",
-                required, available
+                "buffer too small: required {required} bytes, but only {available} available"
             ),
         }
     }
