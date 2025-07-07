@@ -41,23 +41,14 @@ impl InternalPacket {
     /// Write the header data into the provided buffer
     ///
     /// The number of written bytes is returned.
-    ///
-    /// # Panics
-    /// This method will panic if `Self::length()` doesn't fit in a single byte.
-    /// That would mean the payload is larger than 255 bytes, which is not allowed by the protocol.
-    /// Of course, since `Payload` does a compile time check for this, this function should never panic.
-    fn write_header_to_buffer(
-        &self,
-        buffer: &mut [u8],
-        is_tm_packet: bool,
-        payload_length: u8,
-    ) -> usize {
+    fn write_header_to_buffer(&self, buffer: &mut [u8], is_tm_packet: bool) -> usize {
         let mut idx = 0;
 
         buffer[idx] = self.version();
         idx += 1;
 
-        buffer[idx] = payload_length;
+        // This conversion from usize to u8 is sound since Payload guarantees its length can fit in a byte
+        buffer[idx] = self.payload().length() as u8;
         idx += 1;
 
         let control = *self.device_id() as u8;
@@ -96,8 +87,7 @@ impl InternalPacket {
             });
         }
 
-        let mut idx =
-            self.write_header_to_buffer(buffer, is_tm_packet, self.payload.length() as u8);
+        let mut idx = self.write_header_to_buffer(buffer, is_tm_packet);
 
         idx += self.write_payload_to_buffer(&mut buffer[idx..], self.payload.as_bytes());
 
