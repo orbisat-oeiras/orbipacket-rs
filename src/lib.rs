@@ -372,7 +372,7 @@ mod tests {
     use super::*;
 
     fn payload(byte: u8) -> Payload {
-        Payload::from_bytes([byte]).unwrap()
+        Payload::from_raw_bytes([byte]).unwrap()
     }
 
     #[test]

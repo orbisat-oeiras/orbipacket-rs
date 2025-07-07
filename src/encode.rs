@@ -189,7 +189,7 @@ mod tests {
     };
 
     fn payload(data: u32) -> Payload {
-        Payload::from_bytes(data.to_le_bytes().as_slice()).unwrap()
+        Payload::from_raw_bytes(data.to_le_bytes().as_slice()).unwrap()
     }
 
     #[test]
