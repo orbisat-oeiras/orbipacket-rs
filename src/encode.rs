@@ -26,14 +26,17 @@ impl core::error::Error for EncodeError {}
 impl InternalPacket {
     const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
-    /// Maximum size of the buffer needed to encode the packet
+    /// Maximum size of the buffer needed to encode a packet
     ///
-    /// The buffer passed to the `encode` method must be at least this size.
+    /// A buffer with this size can be used to `encode` any packet.
     // For encoding, we first write the header, payload and CRC to the buffer (overhead + payload size bytes).
     // Then, we use the remainder of the buffer as the COBS output buffer.
     const MAX_ENCODE_BUFFER_SIZE: usize =
         Self::OVERHEAD + Payload::MAX_SIZE + Self::MAX_ENCODED_SIZE;
 
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// A buffer passed to `encode` must be at least this size
     fn encode_buffer_size(&self) -> usize {
         Self::OVERHEAD + self.payload.length() + self.encoded_size()
     }
@@ -106,11 +109,14 @@ impl InternalPacket {
 }
 
 impl TmPacket {
-    /// Size of the buffer needed to encode the packet
+    /// Maximum size of the buffer needed to encode a packet
     ///
-    /// The buffer passed to the `encode` method must be at least this size.
+    /// A buffer with this size can be used to `encode` any packet.
     pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
 
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// A buffer passed to `encode` must be at least this size
     pub fn encode_buffer_size(&self) -> usize {
         self.0.encode_buffer_size()
     }
@@ -125,11 +131,14 @@ impl TmPacket {
 }
 
 impl TcPacket {
-    /// Size of the buffer needed to encode the packet
+    /// Maximum size of the buffer needed to encode a packet
     ///
-    /// The buffer passed to the `encode` method must be at least this size.
+    /// A buffer with this size can be used to `encode` any packet.
     pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
 
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// A buffer passed to `encode` must be at least this size
     pub fn encode_buffer_size(&self) -> usize {
         self.0.encode_buffer_size()
     }
@@ -144,11 +153,14 @@ impl TcPacket {
 }
 
 impl Packet {
-    /// Size of the buffer needed to encode the packet
+    /// Maximum size of the buffer needed to encode a packet
     ///
-    /// The buffer passed to the `encode` method must be at least this size.
+    /// A buffer with this size can be used to `encode` any packet.
     pub const MAX_ENCODE_BUFFER_SIZE: usize = InternalPacket::MAX_ENCODE_BUFFER_SIZE;
 
+    /// Size of the buffer needed to encode the packet
+    ///
+    /// A buffer passed to `encode` must be at least this size
     pub fn encode_buffer_size(&self) -> usize {
         match self {
             Packet::TmPacket(tm_packet) => tm_packet.encode_buffer_size(),

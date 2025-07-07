@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 
-//! This crate implements the [OrbiPacket](https://github.com/orbisat-oeiras/orbipacket) protocol,
+//! This crate implements the [`OrbiPacket`](https://github.com/orbisat-oeiras/orbipacket) protocol,
 //! developed for communication with CanSat devices by the OrbiSat Oeiras team.
 //!
 //! This crate is `no_std` compatible, and can be used in embedded systems. It also doesn't perform any
@@ -8,10 +8,10 @@
 //!
 //! # Basics
 //! Packets come in two flavours, each represented by a struct:
-//! - [TmPacket]: telemetry packet
-//! - [TcPacket]: telecommand packet
+//! - [`TmPacket`]: telemetry packet
+//! - [`TcPacket`]: telecommand packet
 //!
-//! It is also possible to refer to a general packet using the [Packet] enum, which has variants for
+//! It is also possible to refer to a general packet using the [`Packet`] enum, which has variants for
 //! both packet types.
 //!
 //! # Packet structure
@@ -19,13 +19,13 @@
 //! A brief summary of the structs' fields is given below:
 //! - `version`: indicates the version of the protocol the packet adheres to
 //! - `payload_length`: length of the payload, in bytes
-//! - `device_id`: see [DeviceId]
-//! - `timestamp`: see [Timestamp]
+//! - `device_id`: see [`DeviceId`]
+//! - `timestamp`: see [`Timestamp`]
 //! - `payload`: application specific data
 //!
 //! # Encoding
-//! Packets can be encoded into a buffer using any of [TmPacket::encode], [TcPacket::encode] or
-//! [Packet::encode]. All these methods accept a mutable byte slice to which they write the encoded
+//! Packets can be encoded into a buffer using any of [`TmPacket::encode`], [`TcPacket::encode`] or
+//! [`Packet::encode`]. All these methods accept a mutable byte slice to which they write the encoded
 //! packet, returning a slice into the buffer guaranteed to contain exactly the packet's bytes.
 //!
 //! ```rust
@@ -34,7 +34,7 @@
 //! let packet = TmPacket::new(
 //!     DeviceId::System,
 //!     Timestamp::new(1234),
-//!     Payload::from_bytes(b"hello world")?,
+//!     Payload::from_raw_bytes(b"hello world")?,
 //! );
 //! let mut buffer = [1u8; 500];
 //!
@@ -56,7 +56,7 @@
 //!     let packet = TmPacket::new(
 //!         DeviceId::System,
 //!         Timestamp::new(1234),
-//!         Payload::from_bytes([i])?,
+//!         Payload::from_raw_bytes([i])?,
 //!     );
 //!
 //!     let encoded = packet.encode(&mut buffer)?;
@@ -72,10 +72,10 @@
 //! This is necessary because COBS encoding must be done buffer-to-buffer. Thus, the first half of the provided
 //! buffer is used to write the packet fields (as a sort of intermediate value), and the second half is then
 //! used to write the COBS-encoded packet and returned. This leads to sub-optimal memory usage, which is a
-//! compromise made to avoid the use of allocations. The provided constants [TmPacket::MAX_ENCODE_BUFFER_SIZE]
-//! and [TmPacket::MAX_ENCODE_BUFFER_SIZE] can be used to allocate buffers large enough to encode any packet.
-//! If the buffers are dynamically allocated, then the methods [TmPacket::encode_buffer_size] and
-//! [TcPacket::encode_buffer_size] can be used instead to obtain a buffer large enough to encode a specific
+//! compromise made to avoid the use of allocations. The provided constants [`TmPacket::MAX_ENCODE_BUFFER_SIZE`]
+//! and [`TmPacket::MAX_ENCODE_BUFFER_SIZE`] can be used to allocate buffers large enough to encode any packet.
+//! If the buffers are dynamically allocated, then the methods [`TmPacket::encode_buffer_size`] and
+//! [`TcPacket::encode_buffer_size`] can be used instead to obtain a buffer large enough to encode a specific
 //! packet.
 //!
 //! # Decoding
@@ -134,10 +134,19 @@ impl Display for Timestamp {
 }
 
 impl Timestamp {
+    /// Creates a new `Timestamp` from a number of nanoseconds since the Unix epoch.
     pub fn new(timestamp: u64) -> Self {
         Timestamp(timestamp)
     }
 
+    /// Returns the number of nanoseconds since the Unix epoch contained in this `Timestamp`.
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::Timestamp;
+    /// let timestamp = Timestamp::new(1234);
+    /// assert_eq!(timestamp.get(), 1234);
+    /// ```
     pub fn get(&self) -> u64 {
         self.0
     }
@@ -154,7 +163,7 @@ struct InternalPacket {
 }
 
 impl InternalPacket {
-    /// Create a new packet
+    /// Create a new telemetry packet from the given packet fields
     fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         InternalPacket {
             version: VERSION,
@@ -167,18 +176,43 @@ impl InternalPacket {
 
 /// # Packet field getters
 impl InternalPacket {
+    /// The protocol version the packet adheres to
     fn version(&self) -> u8 {
         self.version
     }
 
+    /// The ID of the device emitting the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// ```
     fn device_id(&self) -> &DeviceId {
         &self.device_id
     }
 
+    /// The time at which the packet was created
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// ```
     fn timestamp(&self) -> &Timestamp {
         &self.timestamp
     }
 
+    /// The contents of the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.payload(), Payload::new());
+    /// ```
     fn payload(&self) -> &Payload {
         &self.payload
     }
@@ -196,15 +230,24 @@ impl InternalPacket {
     /// - 2 bytes for the CRC
     const OVERHEAD: usize = 1 + 1 + 1 + 8 + 2;
 
+    /// Maximum size of an unstuffed packet in bytes
+    ///
+    /// Unstuffed packets contain only static overhead and the payload, thus:
+    /// ```
+    /// # use orbipacket::{TmPacket, Payload};
+    /// assert_eq!(TmPacket::MAX_SIZE, TmPacket::OVERHEAD + Payload::MAX_SIZE);
+    /// ```
     const MAX_SIZE: usize = Self::OVERHEAD + Payload::MAX_SIZE;
 
     /// Maximum size of an encoded packet, in bytes
     const MAX_ENCODED_SIZE: usize = cobs::max_encoding_length(Self::MAX_SIZE) + 1;
 
+    /// Size of the packet, unstuffed, in bytes
     fn size(&self) -> usize {
         Self::OVERHEAD + self.payload.length()
     }
 
+    /// Size of the packet, after stuffing, in bytes, including the termination byte
     fn encoded_size(&self) -> usize {
         cobs::max_encoding_length(self.size()) + 1
     }
@@ -216,7 +259,7 @@ impl InternalPacket {
 pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
-    /// Create a new telemetry packet
+    /// Create a new telemetry packet from the given packet fields
     pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TmPacket(InternalPacket::new(device_id, timestamp, payload))
     }
@@ -224,20 +267,45 @@ impl TmPacket {
 
 /// # Packet field getters
 impl TmPacket {
+    /// The protocol version the packet adheres to
+    pub fn version(&self) -> u8 {
+        self.0.version()
+    }
+
+    /// The ID of the device emitting the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// ```
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
     }
 
-    pub fn payload(&self) -> &Payload {
-        self.0.payload()
-    }
-
+    /// The time at which the packet was created
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
     }
 
-    pub fn version(&self) -> u8 {
-        self.0.version()
+    /// The contents of the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.payload(), Payload::new());
+    /// ```
+    pub fn payload(&self) -> &Payload {
+        self.0.payload()
     }
 }
 
@@ -253,15 +321,24 @@ impl TmPacket {
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
+    /// Maximum size of an unstuffed packet in bytes
+    ///
+    /// Unstuffed packets contain only static overhead and the payload, thus:
+    /// ```
+    /// # use orbipacket::{TmPacket, Payload};
+    /// assert_eq!(TmPacket::MAX_SIZE, TmPacket::OVERHEAD + Payload::MAX_SIZE);
+    /// ```
     pub const MAX_SIZE: usize = InternalPacket::MAX_SIZE;
 
-    /// Maximum size of an encoded packet, in bytes
+    /// Maximum size of a stuffed packet, in bytes, including the termination byte
     pub const MAX_ENCODED_SIZE: usize = InternalPacket::MAX_ENCODED_SIZE;
 
+    /// Size of the packet, unstuffed, in bytes
     pub fn size(&self) -> usize {
         self.0.size()
     }
 
+    /// Size of the packet, after stuffing, in bytes, including the termination byte
     pub fn encoded_size(&self) -> usize {
         self.0.encoded_size()
     }
@@ -284,7 +361,7 @@ impl Display for TmPacket {
 pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
-    /// Create a new telecommand packet
+    /// Create a new telecommand packet from the given packet fields
     pub fn new(device_id: DeviceId, timestamp: Timestamp, payload: Payload) -> Self {
         TcPacket(InternalPacket::new(device_id, timestamp, payload))
     }
@@ -292,20 +369,45 @@ impl TcPacket {
 
 /// # Packet field getters
 impl TcPacket {
-    pub fn device_id(&self) -> &DeviceId {
-        self.0.device_id()
+    /// The protocol version the packet adheres to
+    pub fn version(&self) -> u8 {
+        self.0.version()
     }
 
-    pub fn payload(&self) -> &Payload {
-        self.0.payload()
-    }
-
+    /// The time at which the packet was created
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
     }
 
-    pub fn version(&self) -> u8 {
-        self.0.version()
+    /// The ID of the device emitting the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// ```
+    pub fn device_id(&self) -> &DeviceId {
+        self.0.device_id()
+    }
+
+    /// The contents of the packet
+    ///
+    /// # Example
+    /// ```
+    /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// assert_eq!(*packet.payload(), Payload::new());
+    /// ```
+    pub fn payload(&self) -> &Payload {
+        self.0.payload()
     }
 }
 
@@ -321,15 +423,24 @@ impl TcPacket {
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
+    /// Maximum size of an unstuffed packet in bytes
+    ///
+    /// Unstuffed packets contain only static overhead and the payload, thus:
+    /// ```
+    /// # use orbipacket::{TcPacket, Payload};
+    /// assert_eq!(TcPacket::MAX_SIZE, TcPacket::OVERHEAD + Payload::MAX_SIZE);
+    /// ```
     pub const MAX_SIZE: usize = InternalPacket::MAX_SIZE;
 
-    /// Maximum size of an encoded packet, in bytes
+    /// Maximum size of a stuffed packet, in bytes, including the termination byte
     pub const MAX_ENCODED_SIZE: usize = InternalPacket::MAX_ENCODED_SIZE;
 
+    /// Size of the packet, unstuffed, in bytes
     pub fn size(&self) -> usize {
         self.0.size()
     }
 
+    /// Size of the packet, after stuffing, in bytes, including the termination byte
     pub fn encoded_size(&self) -> usize {
         self.0.encoded_size()
     }
@@ -346,7 +457,7 @@ impl Display for TcPacket {
     }
 }
 
-/// Either a telemetry packet or a telecommand packet
+/// An arbitrary packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Packet {
@@ -355,10 +466,32 @@ pub enum Packet {
 }
 
 impl Packet {
+    /// Returns `true` if the packet is a [TmPacket]
+    ///
+    /// # Examples
+    /// ```
+    /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// assert_eq!(packet.is_tm_packet(), true);
+    ///
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// assert_eq!(packet.is_tm_packet(), false);
+    /// ```
     pub fn is_tm_packet(&self) -> bool {
         matches!(self, Packet::TmPacket(_))
     }
 
+    /// Returns `true` if the packet is a [TcPacket]
+    ///
+    /// # Examples
+    /// ```
+    /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// assert_eq!(packet.is_tc_packet(), false);
+    ///
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// assert_eq!(packet.is_tc_packet(), true);
+    /// ```
     pub fn is_tc_packet(&self) -> bool {
         matches!(self, Packet::TcPacket(_))
     }
