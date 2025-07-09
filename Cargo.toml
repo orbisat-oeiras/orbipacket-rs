@@ -14,6 +14,7 @@ keywords = ["orbipacket", "orbisat", "protocol", "cansat"]
 edition = "2021"
 license = "MIT OR APACHE-2.0"
 repository = "https://github.com/orbisat-oeiras/orbipacket-rs"
+rust-version = "1.81.0"
 
 [dependencies]
 cobs = { version = "0.4.0", default-features = false }
