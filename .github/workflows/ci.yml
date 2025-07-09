@@ -1,0 +1,95 @@
+name: Rust Checks and Tests
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+concurrency:
+    group: ${{github.workflow}}-${{github.head_ref || github.run_id}}
+    cancel-in-progress: true
+
+jobs:
+    cargo-build:
+        name: Build project
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+            - name: Run cargo build
+              run: cargo build --all-features --all-targets
+    cargo-fmt:
+        name: Check formatting
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: rustfmt
+            - name: Run rustfmt
+              run: cargo fmt --all --check
+    cargo-clippy:
+        name: Lint project
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: clippy
+            - name: Run clippy
+              run: cargo clippy --all-targets --all-features -- -Dwarnings
+    cargo-doctest:
+        name: Documentation tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+            - name: Run doctests
+              run: cargo test --doc --all-features
+    cargo-nextest:
+        name: Tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+            - name: Install nextest
+              uses: taiki-e/install-action@cargo-nextest
+            - name: Run tests
+              run: cargo nextest run --all-targets --all-features --no-tests=pass
+    cargo-deny:
+        name: Check vulnerabilities
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+            - name: Run cargo deny
+              uses: EmbarkStudios/cargo-deny-action@v2
+    cargo-msrv:
+        name: Check MSRV
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+            - name: Install toolchain
+              uses: dtolnay/rust-toolchain@stable
+            - name: Install msrv
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-msrv
+            - name: Verify MSRV
+              run: cargo msrv verify
