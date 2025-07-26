@@ -68,8 +68,6 @@ impl Payload {
     /// This method expects bytes in little endian. Failing to uphold this invariant constitutes
     /// a protocol violation, and can lead to incorrect data transmission.
     ///
-    /// TODO: add ways to safely create payloads from common data types.
-    ///
     /// # Errors
     /// If the provided bytes are larger than the allowed payload size ([`Payload::MAX_SIZE`]), an error
     /// variant will be returned.
@@ -104,6 +102,66 @@ impl Payload {
         payload.data[..bytes.len()].copy_from_slice(bytes);
         payload.length = bytes.len();
         Ok(payload)
+    }
+
+    pub fn from_u8(value: u8) -> Self {
+        // A u8 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_i8(value: i8) -> Self {
+        // A i8 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_u16(value: u16) -> Self {
+        // A u16 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_i16(value: i16) -> Self {
+        // A i16 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_u32(value: u32) -> Self {
+        // A u32 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_i32(value: i32) -> Self {
+        // A i32 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_u64(value: u64) -> Self {
+        // A u64 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_i64(value: i64) -> Self {
+        // A i64 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_u128(value: u128) -> Self {
+        // A u128 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_i128(value: i128) -> Self {
+        // A i128 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_f32(value: f32) -> Self {
+        // A f32 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
+    }
+
+    pub fn from_f64(value: f64) -> Self {
+        // A f64 is guaranteed to fit inside a payload
+        Self::from_raw_bytes(value.to_le_bytes()).unwrap()
     }
 
     /// Returns the byte representation of the payload.
