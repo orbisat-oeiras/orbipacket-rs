@@ -8,9 +8,9 @@ pub enum EncodeError {
     BufferTooSmall { required: usize, available: usize },
 }
 
-impl InternalPacket {
-    const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
+pub(crate) static CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);
 
+impl InternalPacket {
     /// Maximum size of the buffer needed to encode a packet
     ///
     /// A buffer with this size can be used to `encode` any packet.
@@ -79,7 +79,7 @@ impl InternalPacket {
 
         idx += self.write_payload_to_buffer(&mut buffer[idx..], self.payload.as_bytes());
 
-        let checksum = Self::CRC.checksum(&buffer[..idx]);
+        let checksum = CRC.checksum(&buffer[..idx]);
 
         // Write the checksum after what's already written
         buffer[idx..idx + 2].copy_from_slice(&checksum.to_le_bytes());
