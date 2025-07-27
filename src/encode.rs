@@ -1,27 +1,12 @@
 use crate::{InternalPacket, Packet, Payload, TcPacket, TmPacket};
 
 /// Error that can occur when encoding a packet
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum EncodeError {
     /// The provided buffer is too small to hold the encoded packet
+    #[error("buffer too small: required {required} bytes, but only {available} available")]
     BufferTooSmall { required: usize, available: usize },
 }
-
-impl core::fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        match self {
-            EncodeError::BufferTooSmall {
-                required,
-                available,
-            } => write!(
-                f,
-                "buffer too small: required {required} bytes, but only {available} available"
-            ),
-        }
-    }
-}
-
-impl core::error::Error for EncodeError {}
 
 impl InternalPacket {
     const CRC: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_OPENSAFETY_B);

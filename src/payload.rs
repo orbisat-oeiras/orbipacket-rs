@@ -1,27 +1,14 @@
-use core::fmt::Display;
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// The error type for operations interacting with [`Payload`]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum PayloadError {
     /// The provided data is too long to form a valid payload. The length ot the provided data is
     /// returned as the contents of this variant.
+    #[error("payload too long: {0} bytes")]
     PayloadTooLong(usize),
 }
-
-impl Display for PayloadError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            PayloadError::PayloadTooLong(length) => {
-                write!(f, "payload too long: {length} bytes")
-            }
-        }
-    }
-}
-
-impl core::error::Error for PayloadError {}
 
 /// The contents of a packet.
 ///
