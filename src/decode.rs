@@ -59,7 +59,8 @@ impl Packet {
         let packet = InternalPacket::new(
             id.try_into()?,
             Timestamp::new(timestamp),
-            // TODO: Can this panic?
+            // Unwrapping is safe here because len is at most 255, so the slice
+            // is never too long for Payload
             Payload::from_raw_bytes(&buf[11..len - 2]).unwrap(),
         );
 
