@@ -31,21 +31,21 @@ impl Packet {
             return Err(DecodeError::UnsupportedVersion(buf[0]));
         }
 
-        let found_checksum = u16::from_le_bytes([buf[len - 2], buf[len - 1]]);
-        let expected_checksum = CRC.checksum(&buf[..len - 2]);
-        if found_checksum != expected_checksum {
-            return Err(DecodeError::InvalidChecksum {
-                expected: expected_checksum,
-                found: found_checksum,
-            });
-        }
-
         let found_payload_len = buf[1] as usize;
         let expected_payload_len = len - 13;
         if found_payload_len != expected_payload_len {
             return Err(DecodeError::InvalidLength {
                 expected: expected_payload_len,
                 found: found_payload_len,
+            });
+        }
+
+        let found_checksum = u16::from_le_bytes([buf[len - 2], buf[len - 1]]);
+        let expected_checksum = CRC.checksum(&buf[..len - 2]);
+        if found_checksum != expected_checksum {
+            return Err(DecodeError::InvalidChecksum {
+                expected: expected_checksum,
+                found: found_checksum,
             });
         }
 
