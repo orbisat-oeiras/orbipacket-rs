@@ -42,6 +42,7 @@ impl Packet {
 
         let found_checksum = u16::from_le_bytes([buf[len - 2], buf[len - 1]]);
         let expected_checksum = CRC.checksum(&buf[..len - 2]);
+
         if found_checksum != expected_checksum {
             return Err(DecodeError::InvalidChecksum {
                 expected: expected_checksum,
@@ -103,7 +104,7 @@ mod test {
     use crate::{DeviceId, Packet, VERSION};
 
     #[test]
-    fn internal_packet_decode_tm_packet_works() {
+    fn tm_packet_decode_works() {
         let mut buf = [
             5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
         ];
@@ -111,6 +112,22 @@ mod test {
         let packet = Packet::decode_single(&mut buf).unwrap();
 
         let Packet::TmPacket(packet) = packet else {
+            panic!("Decoded packet is not TmPacket")
+        };
+        assert_eq!(packet.version(), VERSION);
+        assert_eq!(packet.device_id(), &DeviceId::System);
+        assert_eq!(packet.timestamp().get(), 10);
+        assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
+    }
+    #[test]
+    fn tc_packet_decode_works() {
+        let mut buf = [
+            5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0,
+        ];
+
+        let packet = Packet::decode_single(&mut buf).unwrap();
+
+        let Packet::TcPacket(packet) = packet else {
             panic!("Decoded packet is not TmPacket")
         };
         assert_eq!(packet.version(), VERSION);
