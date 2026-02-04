@@ -81,6 +81,7 @@ dependencies = [
  "crc",
  "serde",
  "serde_with",
+ "thiserror",
 ]
 
 [[package]]
