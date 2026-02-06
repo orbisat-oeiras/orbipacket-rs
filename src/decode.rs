@@ -20,6 +20,39 @@ pub enum DecodeError {
 }
 
 impl Packet {
+    /// Decode a buffer containing a single packet.
+    ///
+    /// The input buffer will be used to construct an instance of [`Self`].
+    /// Since the buffer is unstuffed in-place, it is mutated. Thus, the original
+    /// encoded bytes cannot be recovered after decoding.
+    ///
+    /// # Errors
+    /// An error variant is returned if the provided bytes do not constitute a valid packet.
+    /// Namely, the following conditions result in errors:
+    /// - the bytes are not a valid COBS frame;
+    /// - the (unstuffed) buffer is shorter than 13 bytes;
+    /// - the packet's version isn't supported;
+    /// - the reported payload length doesn't match it's actual length;
+    /// - the CRC checksum is incorrect;
+    /// - the control byte cannot be properly parsed into a device ID.
+    ///
+    /// # Examples
+    /// ```
+    /// let mut buf = [
+    ///     5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+    /// ];
+    ///
+    /// let packet = Packet::decode_single(&mut buf)?;
+    ///
+    /// let Packet::TmPacket(packet) = packet else {
+    ///     panic!("Decoded packet is not TmPacket")
+    /// };
+    /// assert_eq!(packet.version(), VERSION);
+    /// assert_eq!(packet.device_id(), &DeviceId::System);
+    /// assert_eq!(packet.timestamp().get(), 10);
+    /// assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn decode_single(buf: &mut [u8]) -> Result<Self, DecodeError> {
         let len = cobs::decode_in_place(buf)?;
 
