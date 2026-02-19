@@ -38,8 +38,10 @@ impl Packet {
     ///
     /// # Examples
     /// ```
+    /// use orbipacket::{Packet, DeviceId};
+    ///
     /// let mut buf = [
-    ///     5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+    ///     5, 1, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
     /// ];
     ///
     /// let packet = Packet::decode_single(&mut buf)?;
@@ -47,7 +49,7 @@ impl Packet {
     /// let Packet::TmPacket(packet) = packet else {
     ///     panic!("Decoded packet is not TmPacket")
     /// };
-    /// assert_eq!(packet.version(), VERSION);
+    /// assert_eq!(packet.version(), 1);
     /// assert_eq!(packet.device_id(), &DeviceId::System);
     /// assert_eq!(packet.timestamp().get(), 10);
     /// assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
