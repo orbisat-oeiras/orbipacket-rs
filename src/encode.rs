@@ -44,9 +44,9 @@ impl InternalPacket {
         buffer[idx] = control;
         idx += 1;
 
-        buffer[idx..idx + 8].copy_from_slice(&self.timestamp().get().to_le_bytes());
+        buffer[idx..idx + 5].copy_from_slice(&self.timestamp().get().to_le_bytes()[..5]);
 
-        idx + 8
+        idx + 5
     }
 
     /// Write the payload data into the provided buffer
