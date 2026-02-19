@@ -88,16 +88,15 @@ impl Packet {
         let tmtc = (buf[2] & 1 << 7) == 0;
         let id = (buf[2] & 0b01111100) >> 2;
         // A range can't be used here because from_le_bytes expects a [u8; 8]
-        let timestamp = u64::from_le_bytes([
-            buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10],
-        ]);
+        let timestamp = u64::from_le_bytes([buf[3], buf[4], buf[5], buf[6], buf[7], 0, 0, 0]);
 
         let packet = InternalPacket::new(
             id.try_into()?,
-            Timestamp::new(timestamp),
+            // Unwrapping is safe here because we just created the value from 5 bytes
+            Timestamp::new(timestamp).unwrap(),
             // Unwrapping is safe here because found_payload_len is at most 255, so the slice
             // is never too long for Payload
-            Payload::from_raw_bytes(&buf[11..][..found_payload_len]).unwrap(),
+            Payload::from_raw_bytes(&buf[8..][..found_payload_len]).unwrap(),
         );
 
         Ok(if tmtc {
