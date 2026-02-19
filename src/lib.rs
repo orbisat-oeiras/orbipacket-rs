@@ -467,6 +467,7 @@ impl Packet {
     }
 }
 
+pub mod decode;
 pub mod encode;
 
 #[cfg(test)]
