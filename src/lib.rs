@@ -92,21 +92,37 @@ use core::fmt::Display;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Time in nanoseconds since the Unix epoch
+/// Error type for operations with [`Timestamp`]
+#[derive(thiserror::Error, Debug)]
+pub enum TimestampError {
+    /// The provided value is to large to be represented in 40 bits.
+    #[error("value too large: {0}")]
+    ValueTooLarge(u64),
+}
+
+/// Time in microseconds since device startup
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Timestamp(u64);
 
 impl Display for Timestamp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{} ns", self.0)
+        write!(f, "{} us", self.0)
     }
 }
 
 impl Timestamp {
-    /// Creates a new `Timestamp` from a number of nanoseconds since the Unix epoch.
-    pub fn new(timestamp: u64) -> Self {
-        Timestamp(timestamp)
+    /// Creates a new `Timestamp` from a number of microseconds since device startup.
+    ///
+    /// # Errors
+    /// If the provided value is larger than 2^40 - 1, an error varian will be returned.
+    /// This ensures that timestamps are only 40-bits long, as required by the protocol.
+    pub fn new(timestamp: u64) -> Result<Self, TimestampError> {
+        if timestamp >= 1 << 41 {
+            Err(TimestampError::ValueTooLarge(timestamp))
+        } else {
+            Ok(Timestamp(timestamp))
+        }
     }
 
     /// Returns the number of nanoseconds since the Unix epoch contained in this `Timestamp`.
@@ -114,8 +130,9 @@ impl Timestamp {
     /// # Example
     /// ```
     /// # use orbipacket::Timestamp;
-    /// let timestamp = Timestamp::new(1234);
+    /// let timestamp = Timestamp::new(1234)?;
     /// assert_eq!(timestamp.get(), 1234);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get(&self) -> u64 {
         self.0
@@ -196,9 +213,9 @@ impl InternalPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
-    const OVERHEAD: usize = 1 + 1 + 1 + 8 + 2;
+    const OVERHEAD: usize = 1 + 1 + 1 + 5 + 2;
 
     /// Maximum size of an unstuffed packet in bytes
     ///
@@ -287,7 +304,7 @@ impl TmPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
@@ -389,7 +406,7 @@ impl TcPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
@@ -480,7 +497,7 @@ mod tests {
 
     #[test]
     fn timestamp_getters_return_values_from_constructor() {
-        let timestamp = Timestamp::new(1234);
+        let timestamp = Timestamp::new(1234).unwrap();
         assert_eq!(timestamp.get(), 1234);
     }
 
@@ -516,12 +533,12 @@ mod tests {
 
     #[test]
     fn tc_packet_overhead_returns_correct() {
-        assert_eq!(TcPacket::OVERHEAD, 13);
+        assert_eq!(TcPacket::OVERHEAD, 10);
     }
 
     #[test]
     fn tc_packet_size_returns_size_of_packet() {
-        assert_eq!(TcPacket::MAX_ENCODED_SIZE, 15 + 256);
+        assert_eq!(TcPacket::MAX_ENCODED_SIZE, 12 + 256);
     }
 
     #[test]
