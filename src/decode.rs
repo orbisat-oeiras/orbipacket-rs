@@ -140,7 +140,8 @@ mod test {
     #[test]
     fn tm_packet_decode_works() {
         let mut buf = [
-            5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+            0x05, VERSION, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x7e,
+            0x12, 0,
         ];
 
         let packet = Packet::decode_single(&mut buf).unwrap();
@@ -156,7 +157,8 @@ mod test {
     #[test]
     fn tc_packet_decode_works() {
         let mut buf = [
-            5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0,
+            0x05, VERSION, 0x04, 0x84, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x014,
+            0x022, 0,
         ];
 
         let packet = Packet::decode_single(&mut buf).unwrap();
