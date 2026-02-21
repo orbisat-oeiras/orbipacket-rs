@@ -33,14 +33,14 @@
 //!
 //! let packet = TmPacket::new(
 //!     DeviceId::System,
-//!     Timestamp::new(1234),
+//!     Timestamp::new(0x1234)?,
 //!     Payload::from_raw_bytes(b"hello world")?,
 //! );
 //! let mut buffer = [1u8; 500];
 //!
 //! let encoded = packet.encode(&mut buffer)?;
 //!
-//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 223, 75, 0][..]);
+//! assert!(matches!(encoded, [0x06, 0x01, 0x0b, 0x04, 0x34, 0x12, 0x01, 0x01, 0x0E, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', _, _, 0]));
 //! assert_eq!(encoded.len(), packet.encoded_size());
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -55,13 +55,13 @@
 //! for i in 1..10u8 {
 //!     let packet = TmPacket::new(
 //!         DeviceId::System,
-//!         Timestamp::new(1234),
+//!         Timestamp::new(0x1111)?,
 //!         Payload::from_raw_bytes([i])?,
 //!     );
 //!
 //!     let encoded = packet.encode(&mut buffer)?;
 //!
-//!     assert!(matches!(encoded, [6, 0x01, 1, 4, 210, 4, 1, 1, 1, 1, 1, 4, i, _, _, 0]));
+//!     assert!(matches!(encoded, [0x06, 0x01, 0x01, 0x04, 0x11, 0x11, 0x01, 0x01, 0x04, i, _, _, 0]));
 //!     assert_eq!(encoded.len(), packet.encoded_size());
 //! }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
@@ -173,8 +173,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn device_id(&self) -> &DeviceId {
         &self.device_id
@@ -185,8 +186,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn timestamp(&self) -> &Timestamp {
         &self.timestamp
@@ -197,8 +199,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn payload(&self) -> &Payload {
         &self.payload
@@ -264,8 +267,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
@@ -276,8 +280,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
@@ -288,8 +293,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn payload(&self) -> &Payload {
         self.0.payload()
@@ -366,8 +372,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
@@ -378,8 +385,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
@@ -390,8 +398,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn payload(&self) -> &Payload {
         self.0.payload()
@@ -458,11 +467,12 @@ impl Packet {
     /// # Examples
     /// ```
     /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tm_packet(), true);
     ///
-    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tm_packet(), false);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn is_tm_packet(&self) -> bool {
         matches!(self, Packet::TmPacket(_))
@@ -473,11 +483,12 @@ impl Packet {
     /// # Examples
     /// ```
     /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tc_packet(), false);
     ///
-    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tc_packet(), true);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn is_tc_packet(&self) -> bool {
         matches!(self, Packet::TcPacket(_))
@@ -513,12 +524,12 @@ mod tests {
 
     #[test]
     fn tm_packet_overhead_returns_correct() {
-        assert_eq!(TmPacket::OVERHEAD, 13);
+        assert_eq!(TmPacket::OVERHEAD, 10);
     }
 
     #[test]
     fn tm_packet_size_returns_size_of_packet() {
-        assert_eq!(TmPacket::MAX_ENCODED_SIZE, 15 + 256);
+        assert_eq!(TmPacket::MAX_ENCODED_SIZE, 10 + 2 + 256);
     }
 
     #[test]

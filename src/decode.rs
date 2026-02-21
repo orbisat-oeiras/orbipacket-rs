@@ -41,7 +41,7 @@ impl Packet {
     /// use orbipacket::{Packet, DeviceId};
     ///
     /// let mut buf = [
-    ///     5, 1, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+    ///     0x05, 1, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x7e, 0x12, 0,
     /// ];
     ///
     /// let packet = Packet::decode_single(&mut buf)?;
