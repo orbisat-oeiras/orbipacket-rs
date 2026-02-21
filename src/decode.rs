@@ -67,7 +67,7 @@ impl Packet {
         }
 
         let found_payload_len = buf[1] as usize;
-        let expected_payload_len = len - 13;
+        let expected_payload_len = len - InternalPacket::OVERHEAD;
         if found_payload_len != expected_payload_len {
             return Err(DecodeError::InvalidLength {
                 expected: expected_payload_len,
