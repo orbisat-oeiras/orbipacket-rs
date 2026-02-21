@@ -44,9 +44,9 @@ impl InternalPacket {
         buffer[idx] = control;
         idx += 1;
 
-        buffer[idx..idx + 8].copy_from_slice(&self.timestamp().get().to_le_bytes());
+        buffer[idx..idx + 5].copy_from_slice(&self.timestamp().get().to_le_bytes()[..5]);
 
-        idx + 8
+        idx + 5
     }
 
     /// Write the payload data into the provided buffer
@@ -202,7 +202,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x7e, 0x12, 0x00
+            ][..]
         );
     }
 
@@ -217,7 +220,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x84, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x14, 0x22, 0
+            ][..]
         );
     }
 
@@ -252,7 +258,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x7e, 0x12, 0x00
+            ][..]
         );
     }
 
@@ -267,7 +276,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x84, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x14, 0x22, 0
+            ][..]
         );
     }
 
@@ -282,7 +294,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x7e, 0x12, 0x00
+            ][..]
         );
     }
 
@@ -297,7 +312,10 @@ mod tests {
 
         assert_eq!(
             encoded,
-            &[5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0][..]
+            &[
+                0x05, VERSION, 0x04, 0x84, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03,
+                0x14, 0x22, 0
+            ][..]
         );
     }
 }

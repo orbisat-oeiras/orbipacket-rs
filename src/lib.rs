@@ -33,14 +33,14 @@
 //!
 //! let packet = TmPacket::new(
 //!     DeviceId::System,
-//!     Timestamp::new(1234),
+//!     Timestamp::new(0x1234)?,
 //!     Payload::from_raw_bytes(b"hello world")?,
 //! );
 //! let mut buffer = [1u8; 500];
 //!
 //! let encoded = packet.encode(&mut buffer)?;
 //!
-//! assert_eq!(encoded, &[6, 0x01, 11, 4, 0xD2, 0x04, 1, 1, 1, 1, 1, 14, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', 223, 75, 0][..]);
+//! assert!(matches!(encoded, [0x06, 0x01, 0x0b, 0x04, 0x34, 0x12, 0x01, 0x01, 0x0E, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', _, _, 0]));
 //! assert_eq!(encoded.len(), packet.encoded_size());
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -55,13 +55,13 @@
 //! for i in 1..10u8 {
 //!     let packet = TmPacket::new(
 //!         DeviceId::System,
-//!         Timestamp::new(1234),
+//!         Timestamp::new(0x1111)?,
 //!         Payload::from_raw_bytes([i])?,
 //!     );
 //!
 //!     let encoded = packet.encode(&mut buffer)?;
 //!
-//!     assert!(matches!(encoded, [6, 0x01, 1, 4, 210, 4, 1, 1, 1, 1, 1, 4, i, _, _, 0]));
+//!     assert!(matches!(encoded, [0x06, 0x01, 0x01, 0x04, 0x11, 0x11, 0x01, 0x01, 0x04, i, _, _, 0]));
 //!     assert_eq!(encoded.len(), packet.encoded_size());
 //! }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
@@ -92,21 +92,37 @@ use core::fmt::Display;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Time in nanoseconds since the Unix epoch
+/// Error type for operations with [`Timestamp`]
+#[derive(thiserror::Error, Debug)]
+pub enum TimestampError {
+    /// The provided value is to large to be represented in 40 bits.
+    #[error("value too large: {0}")]
+    ValueTooLarge(u64),
+}
+
+/// Time in microseconds since device startup
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Timestamp(u64);
 
 impl Display for Timestamp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{} ns", self.0)
+        write!(f, "{} us", self.0)
     }
 }
 
 impl Timestamp {
-    /// Creates a new `Timestamp` from a number of nanoseconds since the Unix epoch.
-    pub fn new(timestamp: u64) -> Self {
-        Timestamp(timestamp)
+    /// Creates a new `Timestamp` from a number of microseconds since device startup.
+    ///
+    /// # Errors
+    /// If the provided value is larger than 2^40 - 1, an error varian will be returned.
+    /// This ensures that timestamps are only 40-bits long, as required by the protocol.
+    pub fn new(timestamp: u64) -> Result<Self, TimestampError> {
+        if timestamp >= 1 << 41 {
+            Err(TimestampError::ValueTooLarge(timestamp))
+        } else {
+            Ok(Timestamp(timestamp))
+        }
     }
 
     /// Returns the number of nanoseconds since the Unix epoch contained in this `Timestamp`.
@@ -114,8 +130,9 @@ impl Timestamp {
     /// # Example
     /// ```
     /// # use orbipacket::Timestamp;
-    /// let timestamp = Timestamp::new(1234);
+    /// let timestamp = Timestamp::new(1234)?;
     /// assert_eq!(timestamp.get(), 1234);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn get(&self) -> u64 {
         self.0
@@ -156,8 +173,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn device_id(&self) -> &DeviceId {
         &self.device_id
@@ -168,8 +186,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn timestamp(&self) -> &Timestamp {
         &self.timestamp
@@ -180,8 +199,9 @@ impl InternalPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     fn payload(&self) -> &Payload {
         &self.payload
@@ -196,9 +216,9 @@ impl InternalPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
-    const OVERHEAD: usize = 1 + 1 + 1 + 8 + 2;
+    const OVERHEAD: usize = 1 + 1 + 1 + 5 + 2;
 
     /// Maximum size of an unstuffed packet in bytes
     ///
@@ -247,8 +267,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
@@ -259,8 +280,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
@@ -271,8 +293,9 @@ impl TmPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TmPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn payload(&self) -> &Payload {
         self.0.payload()
@@ -287,7 +310,7 @@ impl TmPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
@@ -349,8 +372,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
-    /// assert_eq!(*packet.timestamp(), Timestamp::new(0));
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
+    /// assert_eq!(*packet.timestamp(), Timestamp::new(0)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn timestamp(&self) -> &Timestamp {
         self.0.timestamp()
@@ -361,8 +385,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.device_id(), DeviceId::System);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn device_id(&self) -> &DeviceId {
         self.0.device_id()
@@ -373,8 +398,9 @@ impl TcPacket {
     /// # Example
     /// ```
     /// # use orbipacket::{TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new());
+    /// let packet = TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new());
     /// assert_eq!(*packet.payload(), Payload::new());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn payload(&self) -> &Payload {
         self.0.payload()
@@ -389,7 +415,7 @@ impl TcPacket {
     /// - 1 byte for the version
     /// - 1 byte for the length
     /// - 1 byte for the device ID and packet kind
-    /// - 8 bytes for the timestamp
+    /// - 5 bytes for the timestamp
     /// - 2 bytes for the CRC
     pub const OVERHEAD: usize = InternalPacket::OVERHEAD;
 
@@ -441,11 +467,12 @@ impl Packet {
     /// # Examples
     /// ```
     /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tm_packet(), true);
     ///
-    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tm_packet(), false);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn is_tm_packet(&self) -> bool {
         matches!(self, Packet::TmPacket(_))
@@ -456,11 +483,12 @@ impl Packet {
     /// # Examples
     /// ```
     /// # use orbipacket::{Packet, TmPacket, TcPacket, DeviceId, Timestamp, Payload};
-    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TmPacket(TmPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tc_packet(), false);
     ///
-    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0), Payload::new()));
+    /// let packet = Packet::TcPacket(TcPacket::new(DeviceId::System, Timestamp::new(0)?, Payload::new()));
     /// assert_eq!(packet.is_tc_packet(), true);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn is_tc_packet(&self) -> bool {
         matches!(self, Packet::TcPacket(_))
@@ -480,7 +508,7 @@ mod tests {
 
     #[test]
     fn timestamp_getters_return_values_from_constructor() {
-        let timestamp = Timestamp::new(1234);
+        let timestamp = Timestamp::new(1234).unwrap();
         assert_eq!(timestamp.get(), 1234);
     }
 
@@ -496,12 +524,12 @@ mod tests {
 
     #[test]
     fn tm_packet_overhead_returns_correct() {
-        assert_eq!(TmPacket::OVERHEAD, 13);
+        assert_eq!(TmPacket::OVERHEAD, 10);
     }
 
     #[test]
     fn tm_packet_size_returns_size_of_packet() {
-        assert_eq!(TmPacket::MAX_ENCODED_SIZE, 15 + 256);
+        assert_eq!(TmPacket::MAX_ENCODED_SIZE, 10 + 2 + 256);
     }
 
     #[test]
@@ -516,12 +544,12 @@ mod tests {
 
     #[test]
     fn tc_packet_overhead_returns_correct() {
-        assert_eq!(TcPacket::OVERHEAD, 13);
+        assert_eq!(TcPacket::OVERHEAD, 10);
     }
 
     #[test]
     fn tc_packet_size_returns_size_of_packet() {
-        assert_eq!(TcPacket::MAX_ENCODED_SIZE, 15 + 256);
+        assert_eq!(TcPacket::MAX_ENCODED_SIZE, 12 + 256);
     }
 
     #[test]
