@@ -40,7 +40,7 @@
 //!
 //! let encoded = packet.encode(&mut buffer)?;
 //!
-//! assert!(matches!(encoded, [0x06, 0x01, 0x0b, 0x04, 0x34, 0x12, 0x01, 0x01, 0x0E, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', _, _, 0]));
+//! assert!(matches!(encoded, [0x03, 0x01, 0x0b, 0x03, 0x34, 0x12, 0x01, 0x01, 0x0E, b'h', b'e', b'l', b'l', b'o', b' ', b'w', b'o', b'r', b'l', b'd', _, _, 0]));
 //! assert_eq!(encoded.len(), packet.encoded_size());
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -61,7 +61,7 @@
 //!
 //!     let encoded = packet.encode(&mut buffer)?;
 //!
-//!     assert!(matches!(encoded, [0x06, 0x01, 0x01, 0x04, 0x11, 0x11, 0x01, 0x01, 0x04, i, _, _, 0]));
+//!     assert!(matches!(encoded, [0x03, 0x01, 0x01, 0x03, 0x11, 0x11, 0x01, 0x01, 0x04, i, _, _, 0]));
 //!     assert_eq!(encoded.len(), packet.encoded_size());
 //! }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
