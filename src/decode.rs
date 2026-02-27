@@ -41,7 +41,7 @@ impl Packet {
     /// use orbipacket::{Packet, DeviceId};
     ///
     /// let mut buf = [
-    ///     5, 1, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+    ///     0x05, 1, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x7e, 0x12, 0,
     /// ];
     ///
     /// let packet = Packet::decode_single(&mut buf)?;
@@ -67,7 +67,7 @@ impl Packet {
         }
 
         let found_payload_len = buf[1] as usize;
-        let expected_payload_len = len - 13;
+        let expected_payload_len = len - InternalPacket::OVERHEAD;
         if found_payload_len != expected_payload_len {
             return Err(DecodeError::InvalidLength {
                 expected: expected_payload_len,
@@ -88,16 +88,15 @@ impl Packet {
         let tmtc = (buf[2] & 1 << 7) == 0;
         let id = (buf[2] & 0b01111100) >> 2;
         // A range can't be used here because from_le_bytes expects a [u8; 8]
-        let timestamp = u64::from_le_bytes([
-            buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10],
-        ]);
+        let timestamp = u64::from_le_bytes([buf[3], buf[4], buf[5], buf[6], buf[7], 0, 0, 0]);
 
         let packet = InternalPacket::new(
             id.try_into()?,
-            Timestamp::new(timestamp),
+            // Unwrapping is safe here because we just created the value from 5 bytes
+            Timestamp::new(timestamp).unwrap(),
             // Unwrapping is safe here because found_payload_len is at most 255, so the slice
             // is never too long for Payload
-            Payload::from_raw_bytes(&buf[11..][..found_payload_len]).unwrap(),
+            Payload::from_raw_bytes(&buf[8..][..found_payload_len]).unwrap(),
         );
 
         Ok(if tmtc {
@@ -141,7 +140,8 @@ mod test {
     #[test]
     fn tm_packet_decode_works() {
         let mut buf = [
-            5, VERSION, 4, 4, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 28, 228, 0,
+            0x05, VERSION, 0x04, 0x04, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x7e,
+            0x12, 0,
         ];
 
         let packet = Packet::decode_single(&mut buf).unwrap();
@@ -157,7 +157,8 @@ mod test {
     #[test]
     fn tc_packet_decode_works() {
         let mut buf = [
-            5, VERSION, 4, 132, 10, 1, 1, 1, 1, 1, 1, 4, 0xEF, 0xCD, 0xAB, 3, 12, 95, 0,
+            0x05, VERSION, 0x04, 0x84, 0x0a, 0x01, 0x01, 0x01, 0x04, 0xEF, 0xCD, 0xAB, 0x03, 0x014,
+            0x022, 0,
         ];
 
         let packet = Packet::decode_single(&mut buf).unwrap();
