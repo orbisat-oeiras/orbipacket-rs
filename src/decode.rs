@@ -50,7 +50,7 @@ impl Packet {
     ///     panic!("Decoded packet is not TmPacket")
     /// };
     /// assert_eq!(packet.version(), 1);
-    /// assert_eq!(packet.device_id(), &DeviceId::System);
+    /// assert_eq!(packet.device_id(), &DeviceId::TimeSync);
     /// assert_eq!(packet.timestamp().get(), 10);
     /// assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -150,7 +150,7 @@ mod test {
             panic!("Decoded packet is not TmPacket")
         };
         assert_eq!(packet.version(), VERSION);
-        assert_eq!(packet.device_id(), &DeviceId::System);
+        assert_eq!(packet.device_id(), &DeviceId::TimeSync);
         assert_eq!(packet.timestamp().get(), 10);
         assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
     }
@@ -167,7 +167,7 @@ mod test {
             panic!("Decoded packet is not TmPacket")
         };
         assert_eq!(packet.version(), VERSION);
-        assert_eq!(packet.device_id(), &DeviceId::System);
+        assert_eq!(packet.device_id(), &DeviceId::TimeSync);
         assert_eq!(packet.timestamp().get(), 10);
         assert_eq!(packet.payload().as_bytes(), [0xEF, 0xCD, 0xAB, 0]);
     }
