@@ -58,7 +58,7 @@ impl Packet {
     pub fn decode_single(buf: &mut [u8]) -> Result<Self, DecodeError> {
         let len = cobs::decode_in_place(buf)?;
 
-        if len < 13 {
+        if len < InternalPacket::OVERHEAD {
             return Err(DecodeError::BufferTooShort(len));
         }
 
