@@ -111,8 +111,9 @@ impl Packet {
         out: &'b mut [Self],
     ) -> Result<(&'a mut [u8], &'b mut [Self]), DecodeError> {
         let mut out_idx: usize = 0;
+        let mut iter = buf.iter();
 
-        while let Some(idx) = buf.iter().position(|&x| x == 0) {
+        while let Some(idx) = iter.position(|&x| x == 0) {
             if out_idx >= out.len() {
                 // Decrement out_idx so output subslice is correct
                 out_idx -= 1;
