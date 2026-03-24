@@ -107,13 +107,12 @@ impl Packet {
     }
 
     pub fn decode_stateless<'a, 'b>(
-        buf: &'a mut [u8],
+        mut buf: &'a mut [u8],
         out: &'b mut [Self],
     ) -> Result<(&'a mut [u8], &'b mut [Self]), DecodeError> {
         let mut out_idx: usize = 0;
-        let mut last_idx = 0;
 
-        while let Some(idx) = buf[last_idx..].iter().position(|&x| x == 0) {
+        while let Some(idx) = buf.iter().position(|&x| x == 0) {
             if out_idx >= out.len() {
                 // Decrement out_idx so output subslice is correct
                 out_idx -= 1;
@@ -123,19 +122,10 @@ impl Packet {
             out[out_idx] = Self::decode_single(&mut buf[..idx])?;
             out_idx += 1;
 
-            last_idx = idx + 1;
-            if last_idx >= buf.len() {
-                break;
-            }
+            buf = &mut buf[idx + 1..];
         }
 
-        let trailing_range = if let Some(idx) = buf.iter().position(|&x| x == 0) {
-            idx..
-        } else {
-            buf.len()..
-        };
-
-        Ok((&mut buf[trailing_range], &mut out[..out_idx]))
+        Ok((buf, &mut out[..out_idx]))
     }
 }
 
