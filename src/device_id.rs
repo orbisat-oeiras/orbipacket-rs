@@ -3,6 +3,7 @@ use core::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 #[derive(thiserror::Error, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DeviceIdError {
     #[error("invalid device id: {0}")]
     InvalidId(u8),
@@ -13,6 +14,7 @@ pub enum DeviceIdError {
 /// TODO: Autogenerate the enum variants from the protocol mapping
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum DeviceId {
     System = 0,

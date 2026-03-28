@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// The error type for operations interacting with [`Payload`]
 #[derive(thiserror::Error, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PayloadError {
     /// The provided data is too long to form a valid payload. The length ot the provided data is
     /// returned as the contents of this variant.
@@ -24,6 +25,7 @@ pub enum PayloadError {
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Payload {
     #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
     data: [u8; 255],

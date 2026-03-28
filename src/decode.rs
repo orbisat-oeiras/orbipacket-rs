@@ -4,6 +4,7 @@ use crate::{
 };
 
 #[derive(thiserror::Error, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DecodeError {
     #[error(transparent)]
     Cobs(#[from] cobs::DecodeError),

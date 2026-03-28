@@ -94,6 +94,7 @@ use serde::{Deserialize, Serialize};
 
 /// Error type for operations with [`Timestamp`]
 #[derive(thiserror::Error, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TimestampError {
     /// The provided value is to large to be represented in 40 bits.
     #[error("value too large: {0}")]
@@ -103,6 +104,7 @@ pub enum TimestampError {
 /// Time in microseconds since device startup
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Timestamp(u64);
 
 impl Display for Timestamp {
@@ -142,6 +144,7 @@ impl Timestamp {
 /// A packet containing metadata and a payload
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 struct InternalPacket {
     version: u8,
     device_id: DeviceId,
@@ -246,6 +249,7 @@ impl InternalPacket {
 /// A telemetry packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TmPacket(InternalPacket);
 
 impl TmPacket {
@@ -351,6 +355,7 @@ impl Display for TmPacket {
 /// A telecommand packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TcPacket(InternalPacket);
 
 impl TcPacket {
@@ -456,6 +461,7 @@ impl Display for TcPacket {
 /// An arbitrary packet
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Packet {
     TmPacket(TmPacket),
     TcPacket(TcPacket),

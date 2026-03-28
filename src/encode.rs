@@ -2,6 +2,7 @@ use crate::{InternalPacket, Packet, Payload, TcPacket, TmPacket};
 
 /// Error that can occur when encoding a packet
 #[derive(thiserror::Error, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum EncodeError {
     /// The provided buffer is too small to hold the encoded packet
     #[error("buffer too small: required {required} bytes, but only {available} available")]
